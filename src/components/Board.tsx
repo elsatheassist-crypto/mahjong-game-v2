@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Tile as TileType } from '../core/tile';
 import { Player } from '../core/player';
 import Hand from './Hand';
 import DiscardPile from './DiscardPile';
 import ActionBar, { ActionType } from './ActionBar';
-import GameSettings, { AIDifficulty, AIMode } from './GameSettings';
 
 interface PlayerInfo {
   player: Player;
@@ -46,10 +45,6 @@ const Board: React.FC<BoardProps> = ({
   selectedTileId,
   remainingTiles,
 }) => {
-  const [difficulty, setDifficulty] = useState<AIDifficulty>('normal');
-  const [aiMode, setAIMode] = useState<AIMode>('algorithm');
-  const [soundEnabled, setSoundEnabled] = useState(true);
-
   // Find human player
   const humanPlayer = players.find((p) => p.player.isHuman);
   const humanIndex = players.findIndex((p) => p.player.isHuman);
@@ -76,18 +71,6 @@ const Board: React.FC<BoardProps> = ({
 
   return (
     <div className="relative w-full h-full min-h-screen bg-green-700 p-4">
-      {/* Settings */}
-      <div className="absolute top-4 right-4 z-10">
-        <GameSettings
-          difficulty={difficulty}
-          onDifficultyChange={setDifficulty}
-          aiMode={aiMode}
-          onAIModeChange={setAIMode}
-          soundEnabled={soundEnabled}
-          onSoundChange={setSoundEnabled}
-        />
-      </div>
-
       {/* Info Bar */}
       <div className="absolute top-4 left-4 flex gap-4 text-white text-sm">
         <div className="bg-black/30 px-3 py-1 rounded">

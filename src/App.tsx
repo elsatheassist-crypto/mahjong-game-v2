@@ -1,26 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
 import Tile from './components/Tile';
-import Hand from './components/Hand';
 import DiscardPile from './components/DiscardPile';
-import Board from './components/Board';
-import { Tile as TileType, Suit } from './core/tile';
+import GameSettings from './components/GameSettings';
+import { Tile as TileType } from './core/tile';
 
 function App() {
   const {
     state,
     difficulty,
     aiMode,
+    llmConfig,
     startNewGame,
     drawTile,
     selectTile,
     discardTile,
     passAction,
+    setDifficulty,
+    setAIMode,
+    setLLMConfig,
   } = useGameStore();
 
   const selectedTileId = useGameStore((s) => s.selectedTileId);
   const isAITurn = useGameStore((s) => s.isAITurn);
+
+  const [showSettings, setShowSettings] = useState(false);
 
   const humanIndex = 0;
   const isHumanTurn = state.currentPlayer === humanIndex;
@@ -67,14 +72,45 @@ function App() {
           <h1 className="text-5xl font-bold text-white mb-4">🀄 台灣16張麻將</h1>
           <p className="text-green-200 mb-8">單機版 · 練牌好幫手</p>
 
+          {/* Settings Button */}
+          <button
+            onClick={() => setShowSettings(true)}
+            className="mb-6 px-6 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white"
+          >
+            ⚙️ 遊戲設定
+          </button>
+
           {/* Start Button */}
           <button
             onClick={handleStartGame}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-12 rounded-xl text-2xl shadow-lg transition-all hover:scale-105"
+            className="block w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-12 rounded-xl text-2xl shadow-lg transition-all hover:scale-105"
           >
             開始遊戲
           </button>
         </div>
+
+        {/* Settings Modal */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-96 max-w-full mx-4">
+              <h2 className="text-xl font-bold mb-4">⚙️ 遊戲設定</h2>
+              <GameSettings
+                difficulty={difficulty}
+                onDifficultyChange={setDifficulty}
+                aiMode={aiMode}
+                onAIModeChange={setAIMode}
+                llmConfig={llmConfig}
+                onLLMConfigChange={setLLMConfig}
+              />
+              <button
+                onClick={() => setShowSettings(false)}
+                className="mt-4 w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+              >
+                關閉
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -122,21 +158,14 @@ function App() {
   // Show game screen
   const humanPlayer = state.players[humanIndex];
 
-  // Get players in display order (human at bottom)
-  const displayPlayers = [
-    { player: state.players[2], position: 'top' as const, isHuman: false },
-    { player: state.players[1], position: 'right' as const, isHuman: false },
-    { player: state.players[0], position: 'bottom' as const, isHuman: true },
-    { player: state.players[3], position: 'left' as const, isHuman: false },
-  ];
-
   const remainingTiles = state.wall.tiles.length - state.wall.position;
 
   // Determine turn indicator
   const getTurnText = () => {
+    if (isAITurn) return '🤖 AI 思考中...';
     if (isHumanDrawPhase) return '🎯 輪到你了 — 點擊摸牌';
     if (isHumanDiscardPhase) return '👤 輪到你了 — 請出牌';
-    return '🤖 AI 思考中...';
+    return '⏳ 等待中...';
   };
 
   return (
@@ -144,10 +173,16 @@ function App() {
       {/* Header */}
       <div className="bg-green-900 p-3 flex justify-between items-center text-white text-sm">
         <span className="font-bold">🀄 台灣16張麻將</span>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <span>牌牆：{remainingTiles} 張</span>
           <span>難度：{difficulty === 'easy' ? '簡單' : difficulty === 'normal' ? '普通' : '困難'}</span>
-          <span>AI：{aiMode === 'llm' ? '🤖 LLM' : '🧮 演算法'}</span>
+          <span>AI：{aiMode === 'llm' ? '🤖 LLM' : aiMode === 'hybrid' ? '🔀 混合' : '🧮 演算法'}</span>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-1 hover:bg-green-800 rounded"
+          >
+            ⚙️
+          </button>
         </div>
       </div>
 
@@ -165,17 +200,29 @@ function App() {
                 <span className="text-white text-xs ml-1">+{state.players[2].hand.length - 9}</span>
               )}
             </div>
+            {/* North's discards */}
+            <div className="flex gap-0.5 justify-center mt-1">
+              {state.players[2].discards.slice(-6).map((t, i) => (
+                <Tile key={`n-${t.id}-${i}`} tile={t} size="sm" />
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Middle row */}
         <div className="flex-1 flex">
           {/* Left player (West) */}
-          <div className="w-24 p-2 bg-green-800/50 flex flex-col items-center">
+          <div className="w-28 p-2 bg-green-800/50 flex flex-col items-center">
             <div className="text-white text-xs mb-1">西 {state.players[3].hand.length}張</div>
             <div className="flex flex-col gap-0.5">
               {state.players[3].hand.slice(0, 6).map((_, i) => (
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
+              ))}
+            </div>
+            {/* West's discards */}
+            <div className="flex flex-wrap gap-0.5 justify-center mt-1">
+              {state.players[3].discards.slice(-4).map((t, i) => (
+                <Tile key={`w-${t.id}-${i}`} tile={t} size="sm" />
               ))}
             </div>
           </div>
@@ -203,11 +250,17 @@ function App() {
           </div>
 
           {/* Right player (East) */}
-          <div className="w-24 p-2 bg-green-800/50 flex flex-col items-center">
+          <div className="w-28 p-2 bg-green-800/50 flex flex-col items-center">
             <div className="text-white text-xs mb-1">東 {state.players[1].hand.length}張</div>
             <div className="flex flex-col gap-0.5">
               {state.players[1].hand.slice(0, 6).map((_, i) => (
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
+              ))}
+            </div>
+            {/* East's discards */}
+            <div className="flex flex-wrap gap-0.5 justify-center mt-1">
+              {state.players[1].discards.slice(-4).map((t, i) => (
+                <Tile key={`e-${t.id}-${i}`} tile={t} size="sm" />
               ))}
             </div>
           </div>
@@ -253,7 +306,8 @@ function App() {
             {isHumanDrawPhase ? (
               <button
                 onClick={handleDrawClick}
-                className="px-6 py-2 rounded-lg font-bold text-black bg-yellow-500 hover:bg-yellow-600 transition-all cursor-pointer"
+                disabled={isAITurn}
+                className="px-6 py-2 rounded-lg font-bold text-black bg-yellow-500 hover:bg-yellow-600 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 摸牌
               </button>
@@ -261,13 +315,13 @@ function App() {
               <>
                 <button
                   onClick={handleDiscardClick}
-                  disabled={!selectedTileId || !isHumanDiscardPhase}
+                  disabled={!selectedTileId || !isHumanDiscardPhase || isAITurn}
                   className={`
                     px-6 py-2 rounded-lg font-bold text-white
                     transition-all
-                    ${selectedTileId && isHumanDiscardPhase
+                    ${selectedTileId && isHumanDiscardPhase && !isAITurn
                       ? 'bg-yellow-500 hover:bg-yellow-600 text-black cursor-pointer'
-                      : 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-gray-500 cursor-not-allowed opacity-50'
                     }
                   `}
                 >
@@ -276,15 +330,8 @@ function App() {
 
                 <button
                   onClick={handlePass}
-                  disabled={!isHumanDiscardPhase}
-                  className={`
-                    px-6 py-2 rounded-lg font-bold text-white
-                    transition-all
-                    ${isHumanDiscardPhase
-                      ? 'bg-gray-600 hover:bg-gray-700 cursor-pointer'
-                      : 'bg-gray-500 cursor-not-allowed'
-                    }
-                  `}
+                  disabled={!isHumanDiscardPhase || isAITurn}
+                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   過（pass）
                 </button>
@@ -300,33 +347,28 @@ function App() {
         </div>
       </div>
 
-      {/* Discard piles for other players */}
-      <div className="bg-green-800/30 p-2 flex justify-around">
-        <div className="text-center">
-          <div className="text-white text-xs mb-1">東</div>
-          <div className="flex flex-wrap gap-0.5 justify-center max-w-24">
-            {state.players[1].discards.slice(-6).map((t, i) => (
-              <Tile key={`${t.id}-${i}`} tile={t} size="sm" />
-            ))}
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-96 max-w-full mx-4">
+            <h2 className="text-xl font-bold mb-4">⚙️ 遊戲設定</h2>
+            <GameSettings
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
+              aiMode={aiMode}
+              onAIModeChange={setAIMode}
+              llmConfig={llmConfig}
+              onLLMConfigChange={setLLMConfig}
+            />
+            <button
+              onClick={() => setShowSettings(false)}
+              className="mt-4 w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+            >
+              關閉
+            </button>
           </div>
         </div>
-        <div className="text-center">
-          <div className="text-white text-xs mb-1">南</div>
-          <div className="flex flex-wrap gap-0.5 justify-center max-w-24">
-            {state.players[2].discards.slice(-6).map((t, i) => (
-              <Tile key={`${t.id}-${i}`} tile={t} size="sm" />
-            ))}
-          </div>
-        </div>
-        <div className="text-center">
-          <div className="text-white text-xs mb-1">西</div>
-          <div className="flex flex-wrap gap-0.5 justify-center max-w-24">
-            {state.players[3].discards.slice(-6).map((t, i) => (
-              <Tile key={`${t.id}-${i}`} tile={t} size="sm" />
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
