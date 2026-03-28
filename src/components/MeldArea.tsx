@@ -1,5 +1,6 @@
 import React from 'react';
 import { Meld, MeldType } from '../core/player';
+import { Tile } from '../core/tile';
 import TileComponent from './Tile';
 
 interface MeldAreaProps {
@@ -14,6 +15,15 @@ const MELD_COLORS: Record<MeldType, string> = {
   gang: 'border-purple-400 bg-purple-50',
   angang: 'border-gray-400 bg-gray-50',
 };
+
+function getChiDisplayTiles(meld: Meld): Tile[] {
+  if (meld.type !== 'chi' || meld.source === 'self') {
+    return meld.tiles;
+  }
+  const claimed = meld.source;
+  const handTiles = meld.tiles.filter(t => t.id !== claimed.id);
+  return [handTiles[0], claimed, handTiles[1]];
+}
 
 function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
   if (melds.length === 0) {
@@ -33,38 +43,15 @@ function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
           `}
         >
           <div className="flex gap-0.5">
-            {meld.type === 'chi' && meld.source !== 'self' ? (
-              <>
-                <TileComponent
-                  key={`${meld.tiles[1].id}`}
-                  tile={meld.tiles[1]}
-                  size={compact ? 'sm' : 'md'}
-                  showLabel={false}
-                />
-                <TileComponent
-                  key={`${meld.tiles[0].id}`}
-                  tile={meld.tiles[0]}
-                  size={compact ? 'sm' : 'md'}
-                  showLabel={false}
-                />
-                <TileComponent
-                  key={`${meld.tiles[2].id}`}
-                  tile={meld.tiles[2]}
-                  size={compact ? 'sm' : 'md'}
-                  showLabel={false}
-                />
-              </>
-            ) : (
-              meld.tiles.map((tile, tileIndex) => (
-                <TileComponent
-                  key={`${tile.id}-${tileIndex}`}
-                  tile={tile}
-                  size={compact ? 'sm' : 'md'}
-                  faceDown={meld.type === 'angang' && meld.source === 'self' && !isHuman}
-                  showLabel={false}
-                />
-              ))
-            )}
+            {getChiDisplayTiles(meld).map((tile, tileIndex) => (
+              <TileComponent
+                key={`${tile.id}-${tileIndex}`}
+                tile={tile}
+                size={compact ? 'sm' : 'md'}
+                faceDown={meld.type === 'angang' && meld.source === 'self' && !isHuman}
+                showLabel={false}
+              />
+            ))}
           </div>
         </div>
       ))}
