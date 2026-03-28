@@ -303,6 +303,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           fallbackAIDiscard(state, set, get);
         }
       }
+    } else if (state.turnAction === 'waiting') {
+      const newState = skipAction(state);
+      set({ state: newState });
+
+      if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
+        setTimeout(() => get().executeAITurn(), 300);
+      } else {
+        set({ isAITurn: false });
+      }
     }
   },
 }));
