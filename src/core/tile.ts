@@ -107,8 +107,13 @@ export const TILE_UNICODE: Record<Suit, Record<number, string>> = {
 };
 
 export function createTile(suit: Suit, value: number): Tile {
+  // Use crypto.randomUUID for truly unique IDs
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${suit}-${value}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
   return {
-    id: `${suit}-${value}`,
+    id,
     suit,
     value,
   };

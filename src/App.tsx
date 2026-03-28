@@ -202,8 +202,8 @@ function App() {
             </div>
             {/* North's discards */}
             <div className="flex gap-0.5 justify-center mt-1">
-              {state.players[2].discards.slice(-6).map((t, i) => (
-                <Tile key={`n-${t.id}-${i}`} tile={t} size="sm" />
+              {state.players[2].discards.slice(-6).map((t) => (
+                <Tile key={`n-${t.id}`} tile={t} size="sm" />
               ))}
             </div>
           </div>
@@ -221,8 +221,8 @@ function App() {
             </div>
             {/* West's discards */}
             <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-              {state.players[3].discards.slice(-4).map((t, i) => (
-                <Tile key={`w-${t.id}-${i}`} tile={t} size="sm" />
+              {state.players[3].discards.slice(-4).map((t) => (
+                <Tile key={`w-${t.id}`} tile={t} size="sm" />
               ))}
             </div>
           </div>
@@ -259,8 +259,8 @@ function App() {
             </div>
             {/* East's discards */}
             <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-              {state.players[1].discards.slice(-4).map((t, i) => (
-                <Tile key={`e-${t.id}-${i}`} tile={t} size="sm" />
+              {state.players[1].discards.slice(-4).map((t) => (
+                <Tile key={`e-${t.id}`} tile={t} size="sm" />
               ))}
             </div>
           </div>
