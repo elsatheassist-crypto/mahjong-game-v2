@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
 import Tile from './components/Tile';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
 import { Tile as TileType } from './core/tile';
+import { canChi, canPeng, getChiOptions, getPengOption, MeldAction } from './core/meld';
 
 function App() {
   const {
@@ -23,6 +24,7 @@ function App() {
   } = useGameStore();
 
   const selectedTileId = useGameStore((s) => s.selectedTileId);
+  const lastDrawnTileId = useGameStore((s) => s.lastDrawnTileId);
   const isAITurn = useGameStore((s) => s.isAITurn);
 
   const [showSettings, setShowSettings] = useState(false);
@@ -160,6 +162,28 @@ function App() {
 
   const remainingTiles = state.wall.tiles.length - state.wall.position;
 
+  const canChiPeng = useMemo(() => {
+    if (!state.lastDiscard || state.lastDiscardPlayer === null || state.lastDiscardPlayer === humanIndex) {
+      return { canChi: false, canPeng: false, chiOptions: [], pengOption: null };
+    }
+
+    const discarderSeat = state.players[state.lastDiscardPlayer].id;
+    const humanSeat = humanPlayer.id;
+
+    const canChiResult = canChi(humanPlayer, state.lastDiscard, discarderSeat, humanSeat);
+    const chiOptions = canChiResult ? getChiOptions(humanPlayer, state.lastDiscard) : [];
+
+    const canPengResult = canPeng(humanPlayer, state.lastDiscard);
+    const pengOption = canPengResult ? getPengOption(humanPlayer, state.lastDiscard) : null;
+
+    return {
+      canChi: canChiResult,
+      canPeng: canPengResult,
+      chiOptions,
+      pengOption,
+    };
+  }, [state.lastDiscard, state.lastDiscardPlayer, humanPlayer, humanIndex]);
+
   // Determine turn indicator
   const getTurnText = () => {
     if (isAITurn) return '🤖 AI 思考中...';
@@ -202,8 +226,8 @@ function App() {
             </div>
             {/* North's discards */}
             <div className="flex gap-0.5 justify-center mt-1">
-              {state.players[2].discards.slice(-6).map((t) => (
-                <Tile key={`n-${t.id}`} tile={t} size="sm" />
+              {state.players[2].discards.slice(-12).map((t) => (
+                <Tile key={`n-${t.id}`} tile={t} size="sm" showLabel={false} />
               ))}
             </div>
           </div>
@@ -221,8 +245,8 @@ function App() {
             </div>
             {/* West's discards */}
             <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-              {state.players[3].discards.slice(-4).map((t) => (
-                <Tile key={`w-${t.id}`} tile={t} size="sm" />
+              {state.players[3].discards.slice(-8).map((t) => (
+                <Tile key={`w-${t.id}`} tile={t} size="sm" showLabel={false} />
               ))}
             </div>
           </div>
@@ -259,8 +283,8 @@ function App() {
             </div>
             {/* East's discards */}
             <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-              {state.players[1].discards.slice(-4).map((t) => (
-                <Tile key={`e-${t.id}`} tile={t} size="sm" />
+              {state.players[1].discards.slice(-8).map((t) => (
+                <Tile key={`e-${t.id}`} tile={t} size="sm" showLabel={false} />
               ))}
             </div>
           </div>
@@ -286,7 +310,10 @@ function App() {
                     tile={tile}
                     size="md"
                     selected={selectedTileId === tile.id}
+                    highlighted={lastDrawnTileId === tile.id}
                     onClick={() => handleTileClick(tile)}
+                    onDoubleClick={() => handleTileDoubleClick(tile)}
+                    showLabel={false}
                   />
                 ))}
             </div>
@@ -313,6 +340,24 @@ function App() {
               </button>
             ) : (
               <>
+                {(canChiPeng.canPeng || canChiPeng.canChi) && (
+                  <>
+                    {canChiPeng.canPeng && (
+                      <button
+                        className="px-6 py-2 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                      >
+                        碰
+                      </button>
+                    )}
+                    {canChiPeng.canChi && (
+                      <button
+                        className="px-6 py-2 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 cursor-pointer"
+                      >
+                        吃
+                      </button>
+                    )}
+                  </>
+                )}
                 <button
                   onClick={handleDiscardClick}
                   disabled={!selectedTileId || !isHumanDiscardPhase || isAITurn}

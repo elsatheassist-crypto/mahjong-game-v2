@@ -34,6 +34,7 @@ interface GameStore {
   soundEnabled: boolean;
   isAITurn: boolean;
   selectedTileId: string | null;
+  lastDrawnTileId: string | null;
   llmConfig: LLMConfigData | null;
   isLLMThinking: boolean;
 
@@ -65,12 +66,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   soundEnabled: true,
   isAITurn: false,
   selectedTileId: null,
+  lastDrawnTileId: null,
   llmConfig: JASON_OPENROUTER_CONFIG,
   isLLMThinking: false,
 
   startNewGame: () => {
     const newState = startGameCore(createInitialState());
-    set({ state: newState, selectedTileId: null, isAITurn: false, isLLMThinking: false });
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false });
 
     if (newState.currentPlayer !== 0) {
       setTimeout(() => get().startAITurnIfNeeded(), 500);
@@ -96,7 +98,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    set({ state: newState, selectedTileId: null });
+    // Get the newly drawn tile (last in hand)
+    const drawnTile = newState.players[0].hand[newState.players[0].hand.length - 1];
+
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile?.id || null });
   },
 
   discardTile: (tileId) => {
@@ -107,7 +112,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const result = playerDiscardTileCore(state, 0, tileId);
     if (result.lastDiscard) {
-      set({ state: result, selectedTileId: null });
+      set({ state: result, selectedTileId: null, lastDrawnTileId: null });
       setTimeout(() => get().startAITurnIfNeeded(), 300);
     }
   },

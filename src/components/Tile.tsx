@@ -7,7 +7,9 @@ interface TileProps {
   tile: TileType;
   size?: TileSize;
   selected?: boolean;
+  highlighted?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   faceDown?: boolean;
   disabled?: boolean;
   showLabel?: boolean;
@@ -60,7 +62,9 @@ const TileComponent: React.FC<TileProps> = ({
   tile,
   size = 'md',
   selected = false,
+  highlighted = false,
   onClick,
+  onDoubleClick,
   faceDown = false,
   disabled = false,
   showLabel = true,
@@ -87,15 +91,18 @@ const TileComponent: React.FC<TileProps> = ({
   return (
     <button
       onClick={disabled ? undefined : onClick}
+      onDoubleClick={disabled ? undefined : onDoubleClick}
       disabled={disabled}
       className={`
         ${sizeClasses[size]}
         rounded-md border-2 
         flex flex-col items-center justify-center
         transition-all duration-150
-        ${selected
-          ? 'border-yellow-400 bg-yellow-100 shadow-lg -translate-y-2'
-          : `${bgAccent} border-gray-300 shadow hover:shadow-lg hover:-translate-y-1`
+        ${highlighted
+          ? 'border-yellow-400 bg-yellow-200 shadow-lg shadow-yellow-400/50 -translate-y-1 animate-pulse'
+          : selected
+            ? 'border-yellow-400 bg-yellow-100 shadow-lg -translate-y-2'
+            : `${bgAccent} border-gray-300 shadow hover:shadow-lg hover:-translate-y-1`
         }
         ${disabled
           ? 'opacity-50 cursor-not-allowed'
