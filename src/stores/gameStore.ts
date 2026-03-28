@@ -14,6 +14,7 @@ import {
   playerChi,
   playerPeng,
 } from '../core/game';
+import { drawTile } from '../core/wall';
 import { Tile } from '../core/tile';
 import { createAI } from '../ai';
 import { createLLMAgent } from '../ai/llm/agent';
@@ -98,16 +99,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.currentPlayer !== 0) return;
     if (state.turnAction !== 'draw') return;
 
-    const newState = nextTurn(state);
-    if (newState.phase === GamePhase.GAME_OVER) {
-      set({ state: newState });
+    const drawnResult = drawTile(state.wall);
+    if (drawnResult.tile === null) {
+      set({ state: { ...state, phase: GamePhase.GAME_OVER } });
       return;
     }
 
-    // Get the newly drawn tile (last in hand)
-    const drawnTile = newState.players[0].hand[newState.players[0].hand.length - 1];
+    const drawnTile = drawnResult.tile;
+    const newWall = drawnResult.wall;
 
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile?.id || null });
+    const players = [...state.players];
+    players[0] = { ...players[0], hand: [...players[0].hand, drawnTile] };
+
+    const newState: GameState = {
+      ...state,
+      wall: newWall,
+      players,
+      turnAction: 'discard',
+      lastAction: 'draw',
+    };
+
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile.id });
   },
 
   discardTile: (tileId) => {
