@@ -358,6 +358,11 @@ function App() {
 
         {/* Bottom player (Human) */}
         <div className="p-4 bg-green-900/50">
+          {humanPlayer.melds.length > 0 && (
+            <div className="mb-3 flex justify-center">
+              <MeldArea melds={humanPlayer.melds} isHuman={true} />
+            </div>
+          )}
           <div className="text-center mb-4">
             <div className="text-white text-sm mb-2">
               👤 你的手牌（南）— {humanPlayer.hand.length} 張
@@ -382,12 +387,6 @@ function App() {
                   />
                 ))}
             </div>
-
-            {humanPlayer.melds.length > 0 && (
-              <div className="mt-3 flex justify-center">
-                <MeldArea melds={humanPlayer.melds} isHuman={true} />
-              </div>
-            )}
 
             <div className="text-white/50 text-xs mt-2">
               {isHumanDrawPhase
