@@ -20,7 +20,7 @@ import { createAI } from '../ai';
 import { createLLMAgent } from '../ai/llm/agent';
 import { buildLLMPrompt, parseLLMResponse } from '../ai/llm';
 import { callLLM } from '../ai/llm/providers';
-import { getChiOptions, getPengOption } from '../core/meld';
+import { getChiOptions, getPengOption, getAvailableActions } from '../core/meld';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -325,6 +325,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }
     } else if (state.turnAction === 'waiting') {
+      const aiPlayer = getCurrentPlayer(state);
+      const availableActions = getAvailableActions(aiPlayer, state.lastDiscard!, state.players[state.lastDiscardPlayer!].id, aiPlayer.id);
+
+      if (availableActions.length > 0) {
+        const ai = createAI(difficulty);
+        const decision = ai.decideMeld(aiPlayer, availableActions, state);
+
+        if (decision.action === 'meld' && decision.meldAction) {
+          let newState: GameState;
+          const meldAction = decision.meldAction;
+
+          if (meldAction.type === 'hu') {
+            newState = setWinner(state, state.currentPlayer);
+          } else if (meldAction.type === 'peng') {
+            const handTileIds = meldAction.tiles.map(t => t.id);
+            newState = playerPeng(state, state.currentPlayer, handTileIds, meldAction.meld.tiles);
+          } else if (meldAction.type === 'chi') {
+            const handTileIds = meldAction.tiles.map(t => t.id);
+            newState = playerChi(state, state.currentPlayer, handTileIds, meldAction.meld.tiles);
+          } else {
+            newState = skipAction(state);
+          }
+
+          set({ state: newState });
+
+          if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
+            setTimeout(() => get().executeAITurn(), 500);
+          } else {
+            set({ isAITurn: false });
+          }
+          return;
+        }
+      }
+
       const newState = skipAction(state);
       set({ state: newState });
 
