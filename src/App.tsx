@@ -201,7 +201,12 @@ function App() {
     if (isAITurn) return '🤖 AI 思考中...';
     if (isHumanDrawPhase) return '🎯 輪到你了 — 點擊摸牌';
     if (isHumanDiscardPhase) return '👤 輪到你了 — 請出牌';
-    if (isHumanWaitingPhase) return '👤 輪到你了 — 可以吃碰';
+    if (isHumanWaitingPhase) {
+      if (canChiPeng.canChi || canChiPeng.canPeng) {
+        return '👤 輪到你了 — 可以吃碰';
+      }
+      return '👤 輪到你了 — 請選擇動作';
+    }
     return '⏳ 等待中...';
   };
 
@@ -360,7 +365,7 @@ function App() {
               >
                 摸牌
               </button>
-            ) : state.turnAction === 'waiting' && state.lastDiscard && (canChiPeng.canPeng || canChiPeng.canChi) ? (
+            ) : state.turnAction === 'waiting' && state.lastDiscard ? (
               <>
                 {canChiPeng.canPeng && (
                   <button
@@ -381,7 +386,7 @@ function App() {
                 <button
                   onClick={handlePass}
                   disabled={isAITurn}
-                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity50 disabled:cursor-not-allowed"
                 >
                   過
                 </button>
