@@ -20,7 +20,7 @@ import { createAI } from '../ai';
 import { createLLMAgent } from '../ai/llm/agent';
 import { buildLLMPrompt, parseLLMResponse } from '../ai/llm';
 import { callLLM } from '../ai/llm/providers';
-import { getChiOptions, getPengOption, getAvailableActions } from '../core/meld';
+import { getChiOptions, getPengOption, getAvailableActions, MeldAction } from '../core/meld';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -41,6 +41,7 @@ interface GameStore {
   lastDrawnTileId: string | null;
   llmConfig: LLMConfigData | null;
   isLLMThinking: boolean;
+  chiOptionSelect: MeldAction[];
 
   startNewGame: () => void;
   setDifficulty: (d: AIDifficulty) => void;
@@ -53,6 +54,7 @@ interface GameStore {
   discardTile: (tileId: string) => void;
   passAction: () => void;
   chiAction: () => void;
+  chiActionWithOption: (option: MeldAction) => void;
   pengAction: () => void;
   winAction: () => void;
   executeAITurn: () => void;
@@ -76,10 +78,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastDrawnTileId: null,
   llmConfig: JASON_OPENROUTER_CONFIG,
   isLLMThinking: false,
+  chiOptionSelect: [],
 
   startNewGame: () => {
     const newState = startGameCore(createInitialState());
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false });
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false, chiOptionSelect: [] });
 
     if (newState.currentPlayer !== 0) {
       setTimeout(() => get().startAITurnIfNeeded(), 500);
@@ -138,7 +141,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   passAction: () => {
     const { state } = get();
     const newState = skipAction(state);
-    set({ state: newState });
+    set({ state: newState, chiOptionSelect: [] });
 
     if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
       setTimeout(() => get().startAITurnIfNeeded(), 300);
@@ -152,16 +155,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state.lastDiscard || state.lastDiscardPlayer === null) return;
 
     const humanPlayer = state.players[0];
-    const discarderSeat = state.players[state.lastDiscardPlayer].id;
     const chiOptions = getChiOptions(humanPlayer, state.lastDiscard);
 
     if (chiOptions.length === 0) return;
+
+    if (chiOptions.length > 1) {
+      set({ chiOptionSelect: chiOptions });
+      return;
+    }
 
     const chiOption = chiOptions[0];
     const handTileIds = chiOption.tiles.map(t => t.id);
     const newState = playerChi(state, 0, handTileIds, chiOption.meld.tiles);
 
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+  },
+
+  chiActionWithOption: (chiOption: MeldAction) => {
+    const { state } = get();
+    if (state.phase !== GamePhase.PLAYING) return;
+    if (state.turnAction !== 'waiting') return;
+    if (!state.lastDiscard || state.lastDiscardPlayer === null) return;
+
+    const handTileIds = chiOption.tiles.map(t => t.id);
+    const newState = playerChi(state, 0, handTileIds, chiOption.meld.tiles);
+
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
   },
 
   pengAction: () => {
@@ -178,7 +197,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const handTileIds = pengOption.tiles.map(t => t.id);
     const newState = playerPeng(state, 0, handTileIds, pengOption.meld.tiles);
 
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
   },
 
   winAction: () => {

@@ -21,6 +21,7 @@ function App() {
     discardTile,
     passAction,
     chiAction,
+    chiActionWithOption,
     pengAction,
     winAction,
     setDifficulty,
@@ -31,6 +32,7 @@ function App() {
   const selectedTileId = useGameStore((s) => s.selectedTileId);
   const lastDrawnTileId = useGameStore((s) => s.lastDrawnTileId);
   const isAITurn = useGameStore((s) => s.isAITurn);
+  const chiOptionSelect = useGameStore((s) => s.chiOptionSelect);
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -454,6 +456,26 @@ function App() {
                   : '⏳ 等待 AI...'}
             </div>
           </div>
+
+          {chiOptionSelect.length > 0 && (
+            <div className="flex flex-col items-center gap-2 mb-3">
+              <div className="text-white text-sm">請選擇吃法：</div>
+              <div className="flex gap-2">
+                {chiOptionSelect.map((option, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => chiActionWithOption(option)}
+                    className="px-4 py-2 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 cursor-pointer flex items-center gap-1"
+                  >
+                    吃
+                    {option.meld.tiles.map(t => (
+                      <span key={t.id} className="text-lg">{getTileLabel(t)}</span>
+                    ))}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex justify-center gap-3">
