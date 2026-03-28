@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
 import Tile from './components/Tile';
+import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
 import { Tile as TileType } from './core/tile';
@@ -286,6 +287,11 @@ function App() {
                 <span className="text-white text-xs ml-1">+{state.players[2].hand.length - 9}</span>
               )}
             </div>
+            {state.players[2].melds.length > 0 && (
+              <div className="mt-1">
+                <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -299,6 +305,11 @@ function App() {
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
               ))}
             </div>
+            {state.players[3].melds.length > 0 && (
+              <div className="mt-1">
+                <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} />
+              </div>
+            )}
           </div>
 
           {/* Center */}
@@ -360,6 +371,11 @@ function App() {
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
               ))}
             </div>
+            {state.players[1].melds.length > 0 && (
+              <div className="mt-1">
+                <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -389,6 +405,12 @@ function App() {
                   />
                 ))}
             </div>
+
+            {humanPlayer.melds.length > 0 && (
+              <div className="mt-3 flex justify-center">
+                <MeldArea melds={humanPlayer.melds} isHuman={true} />
+              </div>
+            )}
 
             <div className="text-white/50 text-xs mt-2">
               {isHumanDrawPhase
