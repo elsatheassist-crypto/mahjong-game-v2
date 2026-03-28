@@ -309,6 +309,7 @@ export function playerChi(
     turnAction: 'discard',
     lastDiscard: null,
     lastDiscardPlayer: null,
+    discardSequence: state.discardSequence.slice(0, -1),
   };
 }
 
@@ -349,5 +350,6 @@ export function playerPeng(
     turnAction: 'discard',
     lastDiscard: null,
     lastDiscardPlayer: null,
+    discardSequence: state.discardSequence.slice(0, -1),
   };
 }

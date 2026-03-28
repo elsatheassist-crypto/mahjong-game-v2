@@ -318,20 +318,13 @@ function App() {
               {getTurnText()}
             </div>
 
-            {state.lastDiscard && (
-              <div className="text-center">
-                <div className="text-white text-xs mb-1">最後捨牌</div>
-                <Tile tile={state.lastDiscard} size="md" />
-              </div>
-            )}
-
             <div className="text-white text-center opacity-50">
               <div className="text-2xl">🀫</div>
               <div className="text-xs">{remainingTiles} 張</div>
             </div>
 
             <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
-              <div className="flex flex-wrap gap-1 justify-center content-start">
+              <div className="flex flex-wrap gap-1 justify-start content-start">
                 {state.discardSequence.map((tile, index) => (
                   <Tile
                     key={tile.id}
