@@ -26,6 +26,7 @@ export interface GameState {
   turnAction: 'draw' | 'discard' | 'waiting';
   wind: PlayerSeat;
   lastAction?: ActionType;
+  discardSequence: Tile[];
 }
 
 export function createInitialState(): GameState {
@@ -43,6 +44,7 @@ export function createInitialState(): GameState {
     round: 1,
     turnAction: 'draw',
     wind: 'east',
+    discardSequence: [],
   };
 }
 
@@ -124,6 +126,7 @@ export function playerDiscardTile(state: GameState, playerIndex: number, tileId:
     lastDiscardPlayer: playerIndex,
     turnAction: 'waiting',
     lastAction: 'discard',
+    discardSequence: [...state.discardSequence, result.tile],
   };
 }
 
@@ -167,6 +170,7 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
     lastDiscardPlayer: discarderIndex,
     turnAction: 'waiting',
     lastAction: 'discard',
+    discardSequence: [...state.discardSequence, result.tile],
   };
 }
 

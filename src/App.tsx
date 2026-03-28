@@ -330,36 +330,20 @@ function App() {
               <div className="text-xs">{remainingTiles} 張</div>
             </div>
 
-            {/* Unified Discard Area */}
-            <div className="mt-2 p-2 bg-green-900/30 rounded-lg w-full max-w-2xl">
-              <div className="text-white text-xs text-center mb-2 font-bold">捨牌區</div>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { seat: '東', player: state.players[1] },
-                  { seat: '南', player: state.players[0] },
-                  { seat: '西', player: state.players[3] },
-                  { seat: '北', player: state.players[2] },
-                ].map(({ seat, player }) => (
-                  <div key={seat} className="text-center">
-                    <div className="text-white text-xs mb-1 font-bold">{seat}</div>
-                    <div className="flex flex-wrap gap-0.5 justify-center min-h-[30px]">
-                      {player.discards.slice(-8).map((t, i) => (
-                        <Tile
-                          key={`${seat}-${t.id}`}
-                          tile={t}
-                          size="sm"
-                          showLabel={false}
-                        />
-                      ))}
-                    </div>
-                    {player.discards.length > 8 && (
-                      <div className="text-white/50 text-xs mt-0.5">
-                        +{player.discards.length - 8}
-                      </div>
-                    )}
-                  </div>
+            <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
+              <div className="flex flex-wrap gap-1 justify-center content-start">
+                {state.discardSequence.map((tile, index) => (
+                  <Tile
+                    key={tile.id}
+                    tile={tile}
+                    size="sm"
+                    showLabel={false}
+                  />
                 ))}
               </div>
+              {state.discardSequence.length === 0 && (
+                <div className="text-white/30 text-xs text-center py-4">尚無捨牌</div>
+              )}
             </div>
           </div>
 
