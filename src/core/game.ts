@@ -126,6 +126,15 @@ export function playerDiscardTile(state: GameState, playerIndex: number, tileId:
 
   // Set to waiting state - allow other players to claim chi/peng/gang/hu
   // Do NOT advance currentPlayer yet - wait for other players to act
+  const isSamePlayerAsMeld = state.lastMeldAction && state.lastMeldAction.player === playerIndex;
+  const newMeldAction = isSamePlayerAsMeld && state.lastMeldAction
+    ? {
+        type: state.lastMeldAction.type,
+        player: state.lastMeldAction.player,
+        tile: state.lastMeldAction.tile,
+        discardedTile: result.tile,
+      }
+    : undefined;
   return {
     ...state,
     players,
@@ -134,9 +143,7 @@ export function playerDiscardTile(state: GameState, playerIndex: number, tileId:
     turnAction: 'waiting',
     lastAction: 'discard',
     discardSequence: [...state.discardSequence, result.tile],
-    lastMeldAction: state.lastMeldAction 
-      ? { ...state.lastMeldAction, discardedTile: result.tile }
-      : undefined,
+    lastMeldAction: newMeldAction,
   };
 }
 
@@ -173,6 +180,15 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
 
   const discarderIndex = state.currentPlayer;
 
+  const isSamePlayerAsMeld = state.lastMeldAction && state.lastMeldAction.player === discarderIndex;
+  const newMeldAction = isSamePlayerAsMeld && state.lastMeldAction
+    ? {
+        type: state.lastMeldAction.type,
+        player: state.lastMeldAction.player,
+        tile: state.lastMeldAction.tile,
+        discardedTile: result.tile,
+      }
+    : undefined;
   return {
     ...state,
     players,
@@ -181,9 +197,7 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
     turnAction: 'waiting',
     lastAction: 'discard',
     discardSequence: [...state.discardSequence, result.tile],
-    lastMeldAction: state.lastMeldAction 
-      ? { ...state.lastMeldAction, discardedTile: result.tile }
-      : undefined,
+    lastMeldAction: newMeldAction,
   };
 }
 
