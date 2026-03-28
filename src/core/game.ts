@@ -27,6 +27,12 @@ export interface GameState {
   wind: PlayerSeat;
   lastAction?: ActionType;
   discardSequence: Tile[];
+  lastMeldAction?: {
+    type: 'chi' | 'peng' | 'gang' | 'hu';
+    player: number;
+    tile: Tile;
+    discardedTile?: Tile;
+  };
 }
 
 export function createInitialState(): GameState {
@@ -45,6 +51,7 @@ export function createInitialState(): GameState {
     turnAction: 'draw',
     wind: 'east',
     discardSequence: [],
+    lastMeldAction: undefined,
   };
 }
 
@@ -127,6 +134,9 @@ export function playerDiscardTile(state: GameState, playerIndex: number, tileId:
     turnAction: 'waiting',
     lastAction: 'discard',
     discardSequence: [...state.discardSequence, result.tile],
+    lastMeldAction: state.lastMeldAction 
+      ? { ...state.lastMeldAction, discardedTile: result.tile }
+      : undefined,
   };
 }
 
@@ -171,6 +181,9 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
     turnAction: 'waiting',
     lastAction: 'discard',
     discardSequence: [...state.discardSequence, result.tile],
+    lastMeldAction: state.lastMeldAction 
+      ? { ...state.lastMeldAction, discardedTile: result.tile }
+      : undefined,
   };
 }
 
@@ -310,6 +323,11 @@ export function playerChi(
     lastDiscard: null,
     lastDiscardPlayer: null,
     discardSequence: state.discardSequence.slice(0, -1),
+    lastMeldAction: {
+      type: 'chi',
+      player: playerIndex,
+      tile: state.lastDiscard!,
+    },
   };
 }
 
@@ -351,5 +369,10 @@ export function playerPeng(
     lastDiscard: null,
     lastDiscardPlayer: null,
     discardSequence: state.discardSequence.slice(0, -1),
+    lastMeldAction: {
+      type: 'peng',
+      player: playerIndex,
+      tile: state.lastDiscard!,
+    },
   };
 }

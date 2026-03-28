@@ -5,7 +5,7 @@ import Tile from './components/Tile';
 import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
-import { Tile as TileType } from './core/tile';
+import { Tile as TileType, TILE_DISPLAY, Suit } from './core/tile';
 import { canChi, canPeng, getChiOptions, getPengOption } from './core/meld';
 import { canWinByClaimingDiscard, checkWin } from './core/win';
 
@@ -255,6 +255,51 @@ function App() {
     return '⏳ 等待中...';
   };
 
+  const SEAT_LABELS: Record<number, string> = {
+    0: '南家',
+    1: '東家',
+    2: '北家',
+    3: '西家',
+  };
+
+  const getTileLabel = (tile: TileType) => {
+    if (tile.suit === Suit.FENG) {
+      const fengLabels: Record<number, string> = { 1: '東', 2: '南', 3: '西', 4: '北' };
+      return fengLabels[tile.value] || '';
+    }
+    if (tile.suit === Suit.JIAN) {
+      const jianLabels: Record<number, string> = { 1: '中', 2: '發', 3: '白' };
+      return jianLabels[tile.value] || '';
+    }
+    return TILE_DISPLAY[tile.suit as Suit]?.[tile.value] || '';
+  };
+
+  const getCurrentPlayerIndicator = (playerIndex: number) => {
+    if (state.phase !== GamePhase.PLAYING) return null;
+    if (state.currentPlayer !== playerIndex) return null;
+    if (state.turnAction === 'waiting' && playerIndex === 0) return null;
+    if (state.turnAction === 'waiting') return null;
+    if (state.turnAction === 'draw') return '🔵';
+    if (state.turnAction === 'discard') return '🔴';
+    return null;
+  };
+
+  const getLastActionText = () => {
+    const meld = state.lastMeldAction;
+    if (!meld) {
+      if (state.lastDiscard && state.lastDiscardPlayer !== null) {
+        return `${SEAT_LABELS[state.lastDiscardPlayer]}打出${getTileLabel(state.lastDiscard)}`;
+      }
+      return null;
+    }
+    const playerLabel = SEAT_LABELS[meld.player];
+    const actionLabel = meld.type === 'chi' ? '吃' : meld.type === 'peng' ? '碰' : meld.type === 'gang' ? '槓' : '胡';
+    if (meld.discardedTile) {
+      return `${playerLabel}${actionLabel}${getTileLabel(meld.tile)}，打出${getTileLabel(meld.discardedTile)}`;
+    }
+    return `${playerLabel}${actionLabel}${getTileLabel(meld.tile)}`;
+  };
+
   return (
     <div className="min-h-screen bg-green-700 flex flex-col">
       {/* Header */}
@@ -278,7 +323,10 @@ function App() {
         {/* Top player (North) */}
         <div className="flex justify-center p-2 bg-green-800/50">
           <div className="text-center">
-            <div className="text-white text-xs mb-1">北 {state.players[2].hand.length}張</div>
+            <div className="text-white text-xs mb-1">
+              {getCurrentPlayerIndicator(2) && <span className="mr-1">{getCurrentPlayerIndicator(2)}</span>}
+              北 {state.players[2].hand.length}張
+            </div>
             <div className="flex gap-0.5 justify-center">
               {state.players[2].hand.slice(0, 9).map((_, i) => (
                 <div key={i} className="w-5 h-6 bg-blue-800 rounded-sm border border-blue-600" />
@@ -299,7 +347,10 @@ function App() {
         <div className="flex-1 flex">
           {/* Left player (West) */}
           <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
-            <div className="text-white text-xs mb-1">西 {state.players[3].hand.length}張</div>
+            <div className="text-white text-xs mb-1">
+              {getCurrentPlayerIndicator(3) && <span className="mr-1">{getCurrentPlayerIndicator(3)}</span>}
+              西 {state.players[3].hand.length}張
+            </div>
             <div className="flex flex-col gap-0.5">
               {state.players[3].hand.slice(0, 6).map((_, i) => (
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
@@ -317,6 +368,9 @@ function App() {
             <div className={`text-lg font-bold ${isHumanTurn ? 'text-yellow-400' : 'text-white'}`}>
               {getTurnText()}
             </div>
+            {getLastActionText() && (
+              <div className="text-white/80 text-sm">{getLastActionText()}</div>
+            )}
 
             <div className="text-white text-center opacity-50">
               <div className="text-2xl">🀫</div>
@@ -342,7 +396,10 @@ function App() {
 
           {/* Right player (East) */}
           <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
-            <div className="text-white text-xs mb-1">東 {state.players[1].hand.length}張</div>
+            <div className="text-white text-xs mb-1">
+              {getCurrentPlayerIndicator(1) && <span className="mr-1">{getCurrentPlayerIndicator(1)}</span>}
+              東 {state.players[1].hand.length}張
+            </div>
             <div className="flex flex-col gap-0.5">
               {state.players[1].hand.slice(0, 6).map((_, i) => (
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
@@ -365,6 +422,7 @@ function App() {
           )}
           <div className="text-center mb-4">
             <div className="text-white text-sm mb-2">
+              {getCurrentPlayerIndicator(0) && <span className="mr-1">{getCurrentPlayerIndicator(0)}</span>}
               👤 你的手牌（南）— {humanPlayer.hand.length} 張
             </div>
 
