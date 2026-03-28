@@ -127,10 +127,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = skipAction(state);
     set({ state: newState });
 
-    if (newState.phase === GamePhase.PLAYING && newState.turnAction !== 'waiting') {
-      if (newState.currentPlayer !== 0) {
-        setTimeout(() => get().startAITurnIfNeeded(), 300);
-      }
+    if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
+      setTimeout(() => get().startAITurnIfNeeded(), 300);
     }
   },
 
