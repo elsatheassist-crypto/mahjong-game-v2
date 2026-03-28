@@ -333,15 +333,17 @@ export function isReady(hand: Tile[], melds: Meld[]): boolean {
 
 /**
  * Check if player can win by claiming a discarded tile
- * Player has 16 tiles in hand, adding the discard makes 17
+ * Total tiles (hand + melds) must be 16, adding the discard makes 17
  *
- * @param hand - Player's current hand (16 tiles)
+ * @param hand - Player's current hand
  * @param melds - Player's current melds
  * @param discard - The tile that was discarded
  * @returns true if claiming this discard results in a winning hand
  */
 export function canWinByClaimingDiscard(hand: Tile[], melds: Meld[], discard: Tile): boolean {
-  if (hand.length !== 16) return false;
+  const meldTiles = melds.reduce((sum, m) => sum + m.tiles.length, 0);
+  const totalTiles = hand.length + meldTiles;
+  if (totalTiles !== 16) return false;
   const testHand = [...hand, discard];
   const result = checkWin(testHand, melds);
   return result.isWin;

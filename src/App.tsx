@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
 import Tile from './components/Tile';
@@ -75,9 +75,30 @@ function App() {
   const canZimo = useMemo(() => {
     if (state.phase !== GamePhase.PLAYING) return false;
     if (!isHumanDiscardPhase) return false;
-    const result = checkWin(humanPlayer.hand, humanPlayer.melds);
-    return result.isWin;
+
+    const meldTiles = humanPlayer.melds.reduce((sum, m) => sum + m.tiles.length, 0);
+    const totalTiles = humanPlayer.hand.length + meldTiles;
+
+    if (totalTiles === 17) {
+      return checkWin(humanPlayer.hand, humanPlayer.melds).isWin;
+    }
+    if (totalTiles === 18) {
+      for (const tile of humanPlayer.hand) {
+        const testHand = humanPlayer.hand.filter(t => t.id !== tile.id);
+        if (checkWin(testHand, humanPlayer.melds).isWin) return true;
+      }
+    }
+    return false;
   }, [state.phase, isHumanDiscardPhase, humanPlayer.hand, humanPlayer.melds]);
+
+  // Auto-pass when human cannot act on discard
+  useEffect(() => {
+    if (!isHumanWaitingPhase) return;
+    if (!state.lastDiscard) return;
+    if (canChiPeng.canWin || canChiPeng.canPeng || canChiPeng.canChi) return;
+    const timer = setTimeout(() => passAction(), 500);
+    return () => clearTimeout(timer);
+  }, [isHumanWaitingPhase, state.lastDiscard, canChiPeng.canWin, canChiPeng.canPeng, canChiPeng.canChi, passAction]);
 
   // ========== CALLBACKS ==========
   const handleTileClick = useCallback((tile: TileType) => {
