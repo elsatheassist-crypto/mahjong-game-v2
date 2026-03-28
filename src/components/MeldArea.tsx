@@ -39,19 +39,19 @@ function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
                   key={`${meld.tiles[1].id}`}
                   tile={meld.tiles[1]}
                   size={compact ? 'sm' : 'md'}
-                  showLabel={!compact}
+                  showLabel={false}
                 />
                 <TileComponent
                   key={`${meld.tiles[0].id}`}
                   tile={meld.tiles[0]}
                   size={compact ? 'sm' : 'md'}
-                  showLabel={!compact}
+                  showLabel={false}
                 />
                 <TileComponent
                   key={`${meld.tiles[2].id}`}
                   tile={meld.tiles[2]}
                   size={compact ? 'sm' : 'md'}
-                  showLabel={!compact}
+                  showLabel={false}
                 />
               </>
             ) : (
@@ -61,7 +61,7 @@ function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
                   tile={tile}
                   size={compact ? 'sm' : 'md'}
                   faceDown={meld.type === 'angang' && meld.source === 'self' && !isHuman}
-                  showLabel={!compact}
+                  showLabel={false}
                 />
               ))
             )}
