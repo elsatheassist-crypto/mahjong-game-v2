@@ -6,6 +6,7 @@ import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
 import { Tile as TileType } from './core/tile';
 import { canChi, canPeng, getChiOptions, getPengOption } from './core/meld';
+import { canWinByClaimingDiscard, checkWin } from './core/win';
 
 function App() {
   const {
@@ -20,6 +21,7 @@ function App() {
     passAction,
     chiAction,
     pengAction,
+    winAction,
     setDifficulty,
     setAIMode,
     setLLMConfig,
@@ -40,13 +42,13 @@ function App() {
   const isHumanWaitingPhase = isHumanTurn && state.turnAction === 'waiting';
   const remainingTiles = state.wall.tiles.length - state.wall.position;
 
-  // Only compute chi/peng when in PLAYING phase and there's a discard to consider
+  // Compute canChi, canPeng, canWin when there's a discard to consider
   const canChiPeng = useMemo(() => {
     if (state.phase !== GamePhase.PLAYING) {
-      return { canChi: false, canPeng: false, chiOptions: [], pengOption: null };
+      return { canChi: false, canPeng: false, canWin: false, chiOptions: [], pengOption: null };
     }
     if (!state.lastDiscard || state.lastDiscardPlayer === null || state.lastDiscardPlayer === humanIndex) {
-      return { canChi: false, canPeng: false, chiOptions: [], pengOption: null };
+      return { canChi: false, canPeng: false, canWin: false, chiOptions: [], pengOption: null };
     }
 
     const discarderSeat = state.players[state.lastDiscardPlayer].id;
@@ -58,13 +60,24 @@ function App() {
     const canPengResult = canPeng(humanPlayer, state.lastDiscard);
     const pengOption = canPengResult ? getPengOption(humanPlayer, state.lastDiscard) : null;
 
+    const canWinResult = canWinByClaimingDiscard(humanPlayer.hand, humanPlayer.melds, state.lastDiscard);
+
     return {
       canChi: canChiResult,
       canPeng: canPengResult,
+      canWin: canWinResult,
       chiOptions,
       pengOption,
     };
   }, [state.phase, state.lastDiscard, state.lastDiscardPlayer, humanPlayer, humanIndex]);
+
+  // Check if human can win by self-draw (after drawing a tile)
+  const canZimo = useMemo(() => {
+    if (state.phase !== GamePhase.PLAYING) return false;
+    if (!isHumanDiscardPhase) return false;
+    const result = checkWin(humanPlayer.hand, humanPlayer.melds);
+    return result.isWin;
+  }, [state.phase, isHumanDiscardPhase, humanPlayer.hand, humanPlayer.melds]);
 
   // ========== CALLBACKS ==========
   const handleTileClick = useCallback((tile: TileType) => {
@@ -102,6 +115,14 @@ function App() {
   const handlePeng = useCallback(() => {
     pengAction();
   }, [pengAction]);
+
+  const handleHu = useCallback(() => {
+    winAction();
+  }, [winAction]);
+
+  const handleZimo = useCallback(() => {
+    winAction();
+  }, [winAction]);
 
   const handleStartGame = useCallback(() => {
     startNewGame();
@@ -200,12 +221,14 @@ function App() {
   const getTurnText = () => {
     if (isAITurn) return '🤖 AI 思考中...';
     if (isHumanDrawPhase) return '🎯 輪到你了 — 點擊摸牌';
-    if (isHumanDiscardPhase) return '👤 輪到你了 — 請出牌';
+    if (isHumanDiscardPhase) {
+      if (canZimo) return '🎉 恭喜！可以自摸！';
+      return '👤 輪到你了 — 請出牌';
+    }
     if (isHumanWaitingPhase) {
-      if (canChiPeng.canChi || canChiPeng.canPeng) {
-        return '👤 輪到你了 — 可以吃碰';
-      }
-      return '👤 輪到你了 — 請選擇動作';
+      if (canChiPeng.canWin) return '🎊 可以胡牌！';
+      if (canChiPeng.canPeng) return '👤 可以碰';
+      if (canChiPeng.canChi) return '👤 可以吃';
     }
     return '⏳ 等待中...';
   };
@@ -367,6 +390,14 @@ function App() {
               </button>
             ) : state.turnAction === 'waiting' && state.lastDiscard ? (
               <>
+                {canChiPeng.canWin && (
+                  <button
+                    onClick={handleHu}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-green-500 hover:bg-green-600 cursor-pointer"
+                  >
+                    胡牌
+                  </button>
+                )}
                 {canChiPeng.canPeng && (
                   <button
                     onClick={handlePeng}
@@ -393,6 +424,14 @@ function App() {
               </>
             ) : isHumanDiscardPhase ? (
               <>
+                {canZimo && (
+                  <button
+                    onClick={handleZimo}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-green-500 hover:bg-green-600 cursor-pointer"
+                  >
+                    自摸
+                  </button>
+                )}
                 <button
                   onClick={handleDiscardClick}
                   disabled={!selectedTileId || isAITurn}

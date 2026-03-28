@@ -53,6 +53,7 @@ interface GameStore {
   passAction: () => void;
   chiAction: () => void;
   pengAction: () => void;
+  winAction: () => void;
   executeAITurn: () => void;
   startAITurnIfNeeded: () => void;
 }
@@ -165,6 +166,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const handTileIds = pengOption.tiles.map(t => t.id);
     const newState = playerPeng(state, 0, handTileIds, pengOption.meld.tiles);
 
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
+  },
+
+  winAction: () => {
+    const { state } = get();
+    if (state.phase !== GamePhase.PLAYING) return;
+
+    const newState = setWinner(state, 0);
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
   },
 
@@ -353,6 +362,7 @@ interface GameStore {
   passAction: () => void;
   chiAction: () => void;
   pengAction: () => void;
+  winAction: () => void;
   executeAITurn: () => void;
   startAITurnIfNeeded: () => void;
 }

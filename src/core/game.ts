@@ -1,6 +1,8 @@
 import { Tile, Suit } from './tile';
 import { Wall, createWall, drawTile, drawMultipleTiles, getRemainingCount } from './wall';
 import { Player, PlayerSeat, createPlayer, addTileToHand, discardTile } from './player';
+import { canChi, canPeng } from './meld';
+import { canWinByClaimingDiscard } from './win';
 
 export enum GamePhase {
   INIT = 'init',
@@ -168,24 +170,50 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
   };
 }
 
+function canPlayerActOnDiscard(state: GameState, playerIndex: number): boolean {
+  if (!state.lastDiscard || state.lastDiscardPlayer === null) return false;
+  if (playerIndex === state.lastDiscardPlayer) return false;
+
+  const player = state.players[playerIndex];
+  const discard = state.lastDiscard;
+  const discarderSeat = state.players[state.lastDiscardPlayer].id;
+  const playerSeat = player.id;
+
+  if (canChi(player, discard, discarderSeat, playerSeat)) return true;
+  if (canPeng(player, discard)) return true;
+  if (canWinByClaimingDiscard(player.hand, player.melds, discard)) return true;
+
+  return false;
+}
+
 export function skipAction(state: GameState): GameState {
   const discarderIdx = state.lastDiscardPlayer ?? -1;
   const currentIdx = state.currentPlayer;
-  const nextPossible = (currentIdx + 1) % 4;
-  const allPassed = nextPossible === discarderIdx;
+  let nextIdx = (currentIdx + 1) % 4;
+  let skipped = 0;
 
-  if (allPassed) {
-    const nextPlayer = (discarderIdx + 1) % 4;
-    return {
-      ...state,
-      currentPlayer: nextPlayer,
-      turnAction: 'draw',
-    };
+  while (skipped < 3) {
+    if (nextIdx === discarderIdx) {
+      return {
+        ...state,
+        currentPlayer: (discarderIdx + 1) % 4,
+        turnAction: 'draw',
+      };
+    }
+    if (canPlayerActOnDiscard(state, nextIdx)) {
+      return {
+        ...state,
+        currentPlayer: nextIdx,
+      };
+    }
+    nextIdx = (nextIdx + 1) % 4;
+    skipped++;
   }
 
   return {
     ...state,
-    currentPlayer: nextPossible,
+    currentPlayer: (discarderIdx + 1) % 4,
+    turnAction: 'draw',
   };
 }
 

@@ -330,3 +330,19 @@ export function getWaitingTiles(hand: Tile[], melds: Meld[]): Tile[] {
 export function isReady(hand: Tile[], melds: Meld[]): boolean {
   return getWaitingTiles(hand, melds).length > 0;
 }
+
+/**
+ * Check if player can win by claiming a discarded tile
+ * Player has 16 tiles in hand, adding the discard makes 17
+ *
+ * @param hand - Player's current hand (16 tiles)
+ * @param melds - Player's current melds
+ * @param discard - The tile that was discarded
+ * @returns true if claiming this discard results in a winning hand
+ */
+export function canWinByClaimingDiscard(hand: Tile[], melds: Meld[], discard: Tile): boolean {
+  if (hand.length !== 16) return false;
+  const testHand = [...hand, discard];
+  const result = checkWin(testHand, melds);
+  return result.isWin;
+}
