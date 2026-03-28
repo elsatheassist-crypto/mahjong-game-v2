@@ -457,45 +457,15 @@ function App() {
                     吃
                   </button>
                 )}
-                <button
-                  onClick={handlePass}
-                  disabled={isAITurn}
-                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity50 disabled:cursor-not-allowed"
-                >
-                  過
-                </button>
-              </>
-            ) : isHumanDiscardPhase ? (
-              <>
-                {canZimo && (
+                {(canChiPeng.canWin || canChiPeng.canPeng || canChiPeng.canChi) && (
                   <button
-                    onClick={handleZimo}
-                    className="px-6 py-2 rounded-lg font-bold text-white bg-green-500 hover:bg-green-600 cursor-pointer"
+                    onClick={handlePass}
+                    disabled={isAITurn}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity50 disabled:cursor-not-allowed"
                   >
-                    自摸
+                    過
                   </button>
                 )}
-                <button
-                  onClick={handleDiscardClick}
-                  disabled={!selectedTileId || isAITurn}
-                  className={`
-                    px-6 py-2 rounded-lg font-bold text-white
-                    transition-all
-                    ${selectedTileId && !isAITurn
-                      ? 'bg-yellow-500 hover:bg-yellow-600 text-black cursor-pointer'
-                      : 'bg-gray-500 cursor-not-allowed opacity-50'
-                    }
-                  `}
-                >
-                  打出所選麻將
-                </button>
-                <button
-                  onClick={handlePass}
-                  disabled={isAITurn}
-                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  過
-                </button>
               </>
             ) : (
               <div className="text-white/50 text-sm">等待中...</div>
