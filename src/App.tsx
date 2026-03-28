@@ -8,7 +8,6 @@ import { Tile as TileType } from './core/tile';
 import { canChi, canPeng, getChiOptions, getPengOption } from './core/meld';
 
 function App() {
-  // ========== HOOKS - MUST BE AT TOP, NO CONDITIONAL ==========
   const {
     state,
     difficulty,
@@ -19,6 +18,8 @@ function App() {
     selectTile,
     discardTile,
     passAction,
+    chiAction,
+    pengAction,
     setDifficulty,
     setAIMode,
     setLLMConfig,
@@ -36,6 +37,7 @@ function App() {
   const isHumanTurn = state.currentPlayer === humanIndex;
   const isHumanDrawPhase = isHumanTurn && state.turnAction === 'draw';
   const isHumanDiscardPhase = isHumanTurn && state.turnAction === 'discard';
+  const isHumanWaitingPhase = isHumanTurn && state.turnAction === 'waiting';
   const remainingTiles = state.wall.tiles.length - state.wall.position;
 
   // Only compute chi/peng when in PLAYING phase and there's a discard to consider
@@ -92,6 +94,14 @@ function App() {
   const handlePass = useCallback(() => {
     passAction();
   }, [passAction]);
+
+  const handleChi = useCallback(() => {
+    chiAction();
+  }, [chiAction]);
+
+  const handlePeng = useCallback(() => {
+    pengAction();
+  }, [pengAction]);
 
   const handleStartGame = useCallback(() => {
     startNewGame();
@@ -191,6 +201,7 @@ function App() {
     if (isAITurn) return '🤖 AI 思考中...';
     if (isHumanDrawPhase) return '🎯 輪到你了 — 點擊摸牌';
     if (isHumanDiscardPhase) return '👤 輪到你了 — 請出牌';
+    if (isHumanWaitingPhase) return '👤 輪到你了 — 可以吃碰';
     return '⏳ 等待中...';
   };
 
@@ -226,11 +237,6 @@ function App() {
                 <span className="text-white text-xs ml-1">+{state.players[2].hand.length - 9}</span>
               )}
             </div>
-            <div className="flex gap-0.5 justify-center mt-1 flex-wrap">
-              {state.players[2].discards.slice(-12).map((t) => (
-                <Tile key={`n-${t.id}`} tile={t} size="sm" showLabel={false} />
-              ))}
-            </div>
           </div>
         </div>
 
@@ -244,15 +250,10 @@ function App() {
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
               ))}
             </div>
-            <div className="flex gap-0.5 justify-center mt-1 flex-wrap max-w-full">
-              {state.players[3].discards.slice(-8).map((t) => (
-                <Tile key={`w-${t.id}`} tile={t} size="sm" showLabel={false} />
-              ))}
-            </div>
           </div>
 
           {/* Center */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4">
             <div className={`text-lg font-bold ${isHumanTurn ? 'text-yellow-400' : 'text-white'}`}>
               {getTurnText()}
             </div>
@@ -260,13 +261,45 @@ function App() {
             {state.lastDiscard && (
               <div className="text-center">
                 <div className="text-white text-xs mb-1">最後捨牌</div>
-                <Tile tile={state.lastDiscard} size="lg" />
+                <Tile tile={state.lastDiscard} size="md" />
               </div>
             )}
 
             <div className="text-white text-center opacity-50">
               <div className="text-2xl">🀫</div>
               <div className="text-xs">{remainingTiles} 張</div>
+            </div>
+
+            {/* Unified Discard Area */}
+            <div className="mt-2 p-2 bg-green-900/30 rounded-lg w-full max-w-2xl">
+              <div className="text-white text-xs text-center mb-2 font-bold">捨牌區</div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { seat: '東', player: state.players[1] },
+                  { seat: '南', player: state.players[0] },
+                  { seat: '西', player: state.players[3] },
+                  { seat: '北', player: state.players[2] },
+                ].map(({ seat, player }) => (
+                  <div key={seat} className="text-center">
+                    <div className="text-white text-xs mb-1 font-bold">{seat}</div>
+                    <div className="flex flex-wrap gap-0.5 justify-center min-h-[30px]">
+                      {player.discards.slice(-8).map((t, i) => (
+                        <Tile
+                          key={`${seat}-${t.id}`}
+                          tile={t}
+                          size="sm"
+                          showLabel={false}
+                        />
+                      ))}
+                    </div>
+                    {player.discards.length > 8 && (
+                      <div className="text-white/50 text-xs mt-0.5">
+                        +{player.discards.length - 8}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -276,11 +309,6 @@ function App() {
             <div className="flex flex-col gap-0.5">
               {state.players[1].hand.slice(0, 6).map((_, i) => (
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
-              ))}
-            </div>
-            <div className="flex gap-0.5 justify-center mt-1 flex-wrap max-w-full">
-              {state.players[1].discards.slice(-8).map((t) => (
-                <Tile key={`e-${t.id}`} tile={t} size="sm" showLabel={false} />
               ))}
             </div>
           </div>
@@ -332,33 +360,41 @@ function App() {
               >
                 摸牌
               </button>
-            ) : (
+            ) : state.turnAction === 'waiting' && state.lastDiscard && (canChiPeng.canPeng || canChiPeng.canChi) ? (
               <>
-                {(canChiPeng.canPeng || canChiPeng.canChi) && (
-                  <>
-                    {canChiPeng.canPeng && (
-                      <button
-                        className="px-6 py-2 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
-                      >
-                        碰
-                      </button>
-                    )}
-                    {canChiPeng.canChi && (
-                      <button
-                        className="px-6 py-2 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 cursor-pointer"
-                      >
-                        吃
-                      </button>
-                    )}
-                  </>
+                {canChiPeng.canPeng && (
+                  <button
+                    onClick={handlePeng}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                  >
+                    碰
+                  </button>
+                )}
+                {canChiPeng.canChi && (
+                  <button
+                    onClick={handleChi}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 cursor-pointer"
+                  >
+                    吃
+                  </button>
                 )}
                 <button
+                  onClick={handlePass}
+                  disabled={isAITurn}
+                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  過
+                </button>
+              </>
+            ) : isHumanDiscardPhase ? (
+              <>
+                <button
                   onClick={handleDiscardClick}
-                  disabled={!selectedTileId || !isHumanDiscardPhase || isAITurn}
+                  disabled={!selectedTileId || isAITurn}
                   className={`
                     px-6 py-2 rounded-lg font-bold text-white
                     transition-all
-                    ${selectedTileId && isHumanDiscardPhase && !isAITurn
+                    ${selectedTileId && !isAITurn
                       ? 'bg-yellow-500 hover:bg-yellow-600 text-black cursor-pointer'
                       : 'bg-gray-500 cursor-not-allowed opacity-50'
                     }
@@ -366,21 +402,17 @@ function App() {
                 >
                   打出所選麻將
                 </button>
-
                 <button
                   onClick={handlePass}
-                  disabled={!isHumanDiscardPhase || isAITurn}
+                  disabled={isAITurn}
                   className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   過
                 </button>
               </>
+            ) : (
+              <div className="text-white/50 text-sm">等待中...</div>
             )}
-          </div>
-
-          <div className="mt-4">
-            <div className="text-white text-xs mb-1">你的捨牌</div>
-            <DiscardPile tiles={humanPlayer.discards} />
           </div>
         </div>
       </div>

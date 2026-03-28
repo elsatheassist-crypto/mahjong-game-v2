@@ -113,15 +113,14 @@ export function playerDiscardTile(state: GameState, playerIndex: number, tileId:
   const players = [...state.players];
   players[playerIndex] = result.player;
 
-  const nextPlayer = (playerIndex + 1) % 4;
-
+  // Set to waiting state - allow other players to claim chi/peng/gang/hu
+  // Do NOT advance currentPlayer yet - wait for other players to act
   return {
     ...state,
     players,
     lastDiscard: result.tile,
     lastDiscardPlayer: playerIndex,
-    currentPlayer: nextPlayer,
-    turnAction: 'draw',
+    turnAction: 'waiting',
     lastAction: 'discard',
   };
 }
@@ -157,24 +156,36 @@ export function aiDiscardTile(state: GameState, tile: Tile): GameState {
   const players = [...state.players];
   players[state.currentPlayer] = result.player;
 
-  const nextPlayer = (state.currentPlayer + 1) % 4;
+  const discarderIndex = state.currentPlayer;
 
   return {
     ...state,
     players,
     lastDiscard: result.tile,
-    lastDiscardPlayer: state.currentPlayer,
-    currentPlayer: nextPlayer,
-    turnAction: 'draw',
+    lastDiscardPlayer: discarderIndex,
+    turnAction: 'waiting',
     lastAction: 'discard',
   };
 }
 
 export function skipAction(state: GameState): GameState {
-  // When player passes on chi/peng/gang, continue to next player or normal flow
+  const discarderIdx = state.lastDiscardPlayer ?? -1;
+  const currentIdx = state.currentPlayer;
+  const nextPossible = (currentIdx + 1) % 4;
+  const allPassed = nextPossible === discarderIdx;
+
+  if (allPassed) {
+    const nextPlayer = (discarderIdx + 1) % 4;
+    return {
+      ...state,
+      currentPlayer: nextPlayer,
+      turnAction: 'draw',
+    };
+  }
+
   return {
     ...state,
-    turnAction: 'draw',
+    currentPlayer: nextPossible,
   };
 }
 
@@ -212,5 +223,99 @@ export function setWinner(state: GameState, winnerIndex: number): GameState {
     ...state,
     phase: GamePhase.GAME_OVER,
     winner: winnerIndex,
+  };
+}
+
+/**
+ * Remove tiles from player's hand by IDs
+ */
+function removeTilesFromHandByIds(player: Player, tileIds: string[]): Player {
+  let hand = [...player.hand];
+  for (const id of tileIds) {
+    const idx = hand.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      hand = [...hand.slice(0, idx), ...hand.slice(idx + 1)];
+    }
+  }
+  return { ...player, hand };
+}
+
+/**
+ * Player claims chi (eat) - forms a sequence meld
+ * Removes tiles from hand, adds meld, discards the claimed tile from discard pile
+ * Player must then discard a tile
+ */
+export function playerChi(
+  state: GameState,
+  playerIndex: number,
+  handTileIds: string[],
+  meldTiles: Tile[]
+): GameState {
+  if (state.phase !== GamePhase.PLAYING) return state;
+  if (state.turnAction !== 'waiting') return state;
+  if (!state.lastDiscard || state.lastDiscardPlayer === null) return state;
+
+  const players = [...state.players];
+  const player = players[playerIndex];
+
+  // Remove tiles from hand
+  const updatedPlayer = removeTilesFromHandByIds(player, handTileIds);
+
+  // Add the meld
+  const meld = {
+    type: 'chi' as const,
+    tiles: meldTiles,
+    source: state.lastDiscard,
+  };
+  updatedPlayer.melds = [...updatedPlayer.melds, meld];
+  players[playerIndex] = updatedPlayer;
+
+  return {
+    ...state,
+    players,
+    currentPlayer: playerIndex,
+    turnAction: 'discard',
+    lastDiscard: null,
+    lastDiscardPlayer: null,
+  };
+}
+
+/**
+ * Player claims peng (pong) - forms a triplet meld
+ * Removes tiles from hand, adds meld
+ * Player must then discard a tile
+ */
+export function playerPeng(
+  state: GameState,
+  playerIndex: number,
+  handTileIds: string[],
+  meldTiles: Tile[]
+): GameState {
+  if (state.phase !== GamePhase.PLAYING) return state;
+  if (state.turnAction !== 'waiting') return state;
+  if (!state.lastDiscard || state.lastDiscardPlayer === null) return state;
+
+  const players = [...state.players];
+  const player = players[playerIndex];
+
+  // Remove tiles from hand
+  const updatedPlayer = removeTilesFromHandByIds(player, handTileIds);
+
+  // Add the meld
+  const meld = {
+    type: 'peng' as const,
+    tiles: meldTiles,
+    source: state.lastDiscard,
+  };
+  updatedPlayer.melds = [...updatedPlayer.melds, meld];
+  players[playerIndex] = updatedPlayer;
+
+  return {
+    ...state,
+    players,
+    currentPlayer: playerIndex,
+    turnAction: 'discard',
+    lastDiscard: null,
+    lastDiscardPlayer: null,
   };
 }
