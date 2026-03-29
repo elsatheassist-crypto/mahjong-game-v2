@@ -390,3 +390,49 @@ export function playerPeng(
     },
   };
 }
+
+/**
+ * Player claims gang (kong) - forms a quad meld from discard
+ * Removes 3 tiles from hand, adds meld with discard
+ * Player must then discard a tile
+ */
+export function playerGang(
+  state: GameState,
+  playerIndex: number,
+  handTileIds: string[],
+  meldTiles: Tile[]
+): GameState {
+  if (state.phase !== GamePhase.PLAYING) return state;
+  if (state.turnAction !== 'waiting') return state;
+  if (!state.lastDiscard || state.lastDiscardPlayer === null) return state;
+
+  const players = [...state.players];
+  const player = players[playerIndex];
+
+  // Remove tiles from hand
+  const updatedPlayer = removeTilesFromHandByIds(player, handTileIds);
+
+  // Add the meld
+  const meld = {
+    type: 'gang' as const,
+    tiles: meldTiles,
+    source: state.lastDiscard,
+  };
+  updatedPlayer.melds = [...updatedPlayer.melds, meld];
+  players[playerIndex] = updatedPlayer;
+
+  return {
+    ...state,
+    players,
+    currentPlayer: playerIndex,
+    turnAction: 'discard',
+    lastDiscard: null,
+    lastDiscardPlayer: null,
+    discardSequence: state.discardSequence.slice(0, -1),
+    lastMeldAction: {
+      type: 'gang',
+      player: playerIndex,
+      tile: state.lastDiscard!,
+    },
+  };
+}

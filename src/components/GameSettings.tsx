@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { callLLM } from '../ai/llm/providers';
+import { LLMConfig } from '../ai/llm/index';
+import { HybridConfig } from '../stores/gameStore';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -16,7 +19,11 @@ interface GameSettingsProps {
   onAIModeChange: (m: AIMode) => void;
   llmConfig: LLMConfigData | null;
   onLLMConfigChange: (c: LLMConfigData | null) => void;
+  hybridConfig: HybridConfig;
+  onHybridConfigChange: (c: Partial<HybridConfig>) => void;
 }
+
+type TestStatus = 'idle' | 'testing' | 'success' | 'error';
 
 const GameSettings: React.FC<GameSettingsProps> = ({
   difficulty,
@@ -25,10 +32,14 @@ const GameSettings: React.FC<GameSettingsProps> = ({
   onAIModeChange,
   llmConfig,
   onLLMConfigChange,
+  hybridConfig,
+  onHybridConfigChange,
 }) => {
   const [apiKey, setApiKey] = useState(llmConfig?.apiKey || '');
   const [model, setModel] = useState(llmConfig?.model || '');
   const [provider, setProvider] = useState<'minimax' | 'openrouter' | 'gemini'>(llmConfig?.provider || 'openrouter');
+  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
+  const [testMessage, setTestMessage] = useState('');
 
   const difficulties: { value: AIDifficulty; label: string; desc: string }[] = [
     { value: 'easy', label: '簡單', desc: '隨機出牌，新手友好' },
@@ -44,7 +55,7 @@ const GameSettings: React.FC<GameSettingsProps> = ({
 
   const models: Record<string, { label: string; defaultModel: string }> = {
     minimax: { label: 'MiniMax', defaultModel: 'MiniMax-M2.7' },
-    openrouter: { label: 'OpenRouter', defaultModel: 'anthropic/claude-3-haiku-20240307' },
+    openrouter: { label: 'OpenRouter', defaultModel: 'google/gemini-2.0-flash-exp' },
     gemini: { label: 'Gemini', defaultModel: 'gemini-2.0-flash' },
   };
 
@@ -61,6 +72,34 @@ const GameSettings: React.FC<GameSettingsProps> = ({
   const handleProviderChange = (newProvider: 'minimax' | 'openrouter' | 'gemini') => {
     setProvider(newProvider);
     setModel(models[newProvider].defaultModel);
+  };
+
+  const handleTestConnection = async () => {
+    setTestStatus('testing');
+    setTestMessage('');
+
+    const testConfig: LLMConfig = {
+      provider,
+      apiKey: apiKey || 'YOUR_API_KEY',
+      model: model || models[provider].defaultModel,
+    };
+
+    const testPrompt = '請回覆"連線成功"四個字。';
+
+    try {
+      const response = await callLLM(testPrompt, testConfig);
+      if (response.content && response.content.length > 0) {
+        setTestStatus('success');
+        setTestMessage(`✓ 連線成功！回應: "${response.content.slice(0, 50)}${response.content.length > 50 ? '...' : ''}"`);
+      } else {
+        setTestStatus('error');
+        setTestMessage('✗ 回應為空，請檢查模型名稱是否正確');
+      }
+    } catch (error) {
+      setTestStatus('error');
+      const errorMessage = error instanceof Error ? error.message : '未知錯誤';
+      setTestMessage(`✗ 連線失敗: ${errorMessage.slice(0, 100)}`);
+    }
   };
 
   return (
@@ -92,6 +131,42 @@ const GameSettings: React.FC<GameSettingsProps> = ({
           {aiModes.find((m) => m.value === aiMode)?.desc}
         </p>
       </div>
+
+      {/* Hybrid Config Toggles */}
+      {aiMode === 'hybrid' && (
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">混合模式設定</h3>
+          <div className="space-y-3">
+            {[
+              { key: 'discard' as const, label: '出牌' },
+              { key: 'meld' as const, label: '吃碰槓' },
+              { key: 'hu' as const, label: '胡牌' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">{label}</span>
+                <div className="flex gap-1">
+                  {(['algorithm', 'llm'] as const).map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => onHybridConfigChange({ [key]: value })}
+                      className={`
+                        px-3 py-1 rounded text-xs font-medium
+                        transition-colors
+                        ${hybridConfig[key] === value
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }
+                      `}
+                    >
+                      {value === 'algorithm' ? '演算法' : 'LLM'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Difficulty */}
       <div>
@@ -146,7 +221,6 @@ const GameSettings: React.FC<GameSettingsProps> = ({
             </div>
           </div>
 
-          {/* API Key */}
           <div className="mb-3">
             <label className="block text-xs text-gray-600 mb-1">API Key</label>
             <input
@@ -158,7 +232,6 @@ const GameSettings: React.FC<GameSettingsProps> = ({
             />
           </div>
 
-          {/* Model */}
           <div className="mb-3">
             <label className="block text-xs text-gray-600 mb-1">模型</label>
             <input
@@ -172,14 +245,42 @@ const GameSettings: React.FC<GameSettingsProps> = ({
 
           <button
             onClick={handleSave}
-            className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium"
+            className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium mb-2"
           >
             儲存 LLM 設定
           </button>
+
+          <button
+            onClick={handleTestConnection}
+            disabled={testStatus === 'testing' || !apiKey}
+            className={`
+              w-full py-2 rounded-lg text-sm font-medium
+              transition-colors
+              ${testStatus === 'testing'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : testStatus === 'success'
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : testStatus === 'error'
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }
+            `}
+          >
+            {testStatus === 'testing' ? '⏳ 測試中...' : '🔍 測試 API 連線'}
+          </button>
+
+          {testMessage && (
+            <div className={`mt-2 p-2 rounded text-xs ${
+              testStatus === 'success' ? 'bg-green-50 text-green-700' :
+              testStatus === 'error' ? 'bg-red-50 text-red-700' :
+              'bg-gray-50 text-gray-700'
+            }`}>
+              {testMessage}
+            </div>
+          )}
         </div>
       )}
 
-      {/* LLM Info */}
       {(aiMode === 'llm' || aiMode === 'hybrid') && (
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
           <p>• MiniMax: https://api.minimax.io</p>

@@ -35,12 +35,8 @@ export async function callLLM(
     headers['Authorization'] = `Bearer ${apiKey}`;
     headers['HTTP-Referer'] = 'https://mahjong.local';
     headers['x-title'] = 'Taiwan Mahjong AI';
-    // Use the model specified, or fall back to a free model
-    const modelToUse = model && model !== 'openrouter/free' 
-      ? model 
-      : 'anthropic/claude-3-haiku-20240307';
     body = {
-      model: modelToUse,
+      model: model || 'google/gemini-2.0-flash-exp',
       messages: [{ role: 'user', content: prompt }],
       temperature,
       max_tokens: 200,

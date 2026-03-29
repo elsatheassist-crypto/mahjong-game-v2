@@ -19,7 +19,16 @@ npm run lint     # ESLint (flat config, auto-detected by ESLint v9)
 src/
 ├── core/           # Pure game logic (tile, wall, game, meld, win, score, player)
 ├── ai/             # AI decision-making (easy/normal/hard + LLM via OpenRouter)
-│   └── llm/        # LLM providers, agent, prompt building
+│   ├── base.ts     # AIAgent interface, AIDifficulty type, AIConfig
+│   ├── easy.ts     # Random discard AI
+│   ├── normal.ts   # Basic efficiency AI (shanten calculation)
+│   ├── hard.ts     # Advanced AI (defense + reading discards)
+│   ├── helpers.ts  # Shared AI utilities
+│   ├── index.ts    # Factory: createAI(difficulty) → AIAgent
+│   └── llm/        # LLM integration (OpenRouter, MiniMax, Gemini)
+│       ├── agent.ts      # createLLMAgent()
+│       ├── providers.ts  # callLLM() — API call logic
+│       └── index.ts      # buildLLMPrompt(), parseLLMResponse()
 ├── components/     # React UI components (Tile, Hand, Board, DiscardPile, etc.)
 ├── stores/         # Zustand state (gameStore.ts — single store)
 ├── utils/          # Helpers (tileHelper.ts)
@@ -49,23 +58,24 @@ src/
 | Tuple types | `camelCase` with `as const` | `['east', 'south', 'west', 'north'] as const` |
 
 ### Imports
-- Group: (1) React / external libs, (2) core modules, (3) components/stores, (4) utils
+- Group order: (1) React / external libs, (2) core modules, (3) components/stores, (4) utils
 - No barrel re-exports — each file exports its own symbols directly
-- AI modules use factory pattern: `createAI(difficulty)` returns `AIAgent` interface
+- **Exception**: `ai/index.ts` is a barrel that re-exports + provides `createAI()` factory
 
 ### TypeScript Patterns
-- **Enum → string union**: Prefer `type WinType = 'tianhu' | 'dihu' | ...` over numeric enums for unions
-- **Enum for domain constants**: `enum Suit { WAN = 'wan', ... }` for fixed sets with runtime iteration
+- **String unions over numeric enums**: `type WinType = 'tianhu' | 'dihu' | ...`
+- **Enums for domain constants**: `enum Suit { WAN = 'wan', ... }` — use when runtime iteration needed
 - **Immutability**: Spread to create new state — `return { ...state, players }`
 - **No `as any`** — never suppress type errors
 - **`as const`** for literal tuple inference where needed
+- **JSDoc comments** on exported interfaces and public functions (see `ai/base.ts` for style)
 
 ### React Patterns
-- Components use `React.FC<Props>` with explicit prop interfaces
+- Components use `React.FC<Props>` with explicit prop interfaces defined above the component
 - `useCallback` for event handlers passed to child components
 - `useMemo` for expensive derived state (chi/peng options)
 - Zustand selectors for individual state slices: `useGameStore((s) => s.selectedTileId)`
-- Component props interface defined above the component, not inline
+- **Single Zustand store**: All game state lives in `gameStore.ts`. Do not create new stores.
 
 ### Tailwind / Styling
 - Tailwind CSS 3 utility classes — no CSS modules, no styled-components
@@ -82,6 +92,12 @@ src/
 - `src/core/` functions are **pure**: take state, return new state, no side effects
 - `src/stores/` owns all mutations and async logic (AI turns, LLM calls)
 - Tile IDs use `crypto.randomUUID()` when available, fallback to `${suit}-${value}-${Date.now()}-${random}`
+
+### AI Module Pattern
+- Factory pattern: `createAI(difficulty)` returns `AIAgent` interface
+- All AI classes implement `AIAgent` from `ai/base.ts`
+- Key methods: `decideDiscard()`, `decideMeld()`, `decideSelfDrawn()`, `getThinkTime()`
+- LLM integration: `createLLMAgent()` + `callLLM()` in `ai/llm/`
 
 ---
 
@@ -101,4 +117,5 @@ src/
 2. **Don't use `Math.random()` for tile IDs** in production — use `crypto.randomUUID()`.
 3. **Don't add test dependencies** without asking — the project has zero test infra.
 4. **Don't create new Zustand stores** — extend the existing `gameStore.ts`.
-5. **Don't add barrel `index.ts` re-exports** unless the module's own `index.ts` already does it (e.g., `ai/index.ts`).
+5. **Don't add barrel `index.ts` re-exports** unless the module already has one (e.g., `ai/index.ts`).
+6. **Don't bypass the AI factory** — always use `createAI(difficulty)`, never instantiate AI classes directly.

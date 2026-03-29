@@ -8,7 +8,7 @@ import { calculateShanten, calculateTileDanger, getImprovementCount } from './he
 export class NormalAI implements AIAgent {
   config: AIConfig = createAIConfig('normal');
 
-  decideDiscard(player: Player, gameState: GameState): Tile {
+  async decideDiscard(player: Player, gameState: GameState): Promise<Tile> {
     const hand = player.hand;
     if (hand.length === 0) throw new Error('No tiles in hand');
 
@@ -33,7 +33,7 @@ export class NormalAI implements AIAgent {
     return bestTile;
   }
 
-  decideMeld(player: Player, availableActions: MeldAction[], _gameState: GameState): AIDecision {
+  async decideMeld(player: Player, availableActions: MeldAction[], _gameState: GameState): Promise<AIDecision> {
     const huAction = availableActions.find(a => a.type === 'hu');
     if (huAction) {
       return { action: 'meld', meldAction: huAction };
@@ -75,7 +75,7 @@ export class NormalAI implements AIAgent {
     return { action: 'pass' };
   }
 
-  decideSelfDrawn(_player: Player, availableActions: MeldAction[], _gameState: GameState): AIDecision {
+  async decideSelfDrawn(_player: Player, availableActions: MeldAction[], _gameState: GameState): Promise<AIDecision> {
     const huAction = availableActions.find(a => a.type === 'hu');
     if (huAction) {
       return { action: 'meld', meldAction: huAction };

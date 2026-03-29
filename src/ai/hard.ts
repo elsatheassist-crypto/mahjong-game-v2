@@ -15,7 +15,7 @@ import { countTiles, getTileKey } from '../utils/tileHelper';
 export class HardAI implements AIAgent {
   config: AIConfig = createAIConfig('hard');
 
-  decideDiscard(player: Player, gameState: GameState): Tile {
+  async decideDiscard(player: Player, gameState: GameState): Promise<Tile> {
     const hand = player.hand;
     if (hand.length === 0) throw new Error('No tiles in hand');
 
@@ -56,7 +56,7 @@ export class HardAI implements AIAgent {
     return bestTile;
   }
 
-  decideMeld(player: Player, availableActions: MeldAction[], gameState: GameState): AIDecision {
+  async decideMeld(player: Player, availableActions: MeldAction[], gameState: GameState): Promise<AIDecision> {
     const playerIndex = this.getPlayerIndex(player, gameState);
     const currentShanten = calculateShanten(player.hand);
     const usefulTiles = estimateRemainingUseful(player.hand, gameState);
@@ -120,7 +120,7 @@ export class HardAI implements AIAgent {
     return { action: 'pass' };
   }
 
-  decideSelfDrawn(player: Player, availableActions: MeldAction[], gameState: GameState): AIDecision {
+  async decideSelfDrawn(player: Player, availableActions: MeldAction[], gameState: GameState): Promise<AIDecision> {
     const huAction = availableActions.find(a => a.type === 'hu');
     if (huAction) {
       return { action: 'meld', meldAction: huAction };

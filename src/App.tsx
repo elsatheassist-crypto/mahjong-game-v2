@@ -15,6 +15,7 @@ function App() {
     difficulty,
     aiMode,
     llmConfig,
+    hybridConfig,
     startNewGame,
     drawTile,
     selectTile,
@@ -27,6 +28,7 @@ function App() {
     setDifficulty,
     setAIMode,
     setLLMConfig,
+    setHybridConfig,
   } = useGameStore();
 
   const selectedTileId = useGameStore((s) => s.selectedTileId);
@@ -188,6 +190,8 @@ function App() {
                 onAIModeChange={setAIMode}
                 llmConfig={llmConfig}
                 onLLMConfigChange={setLLMConfig}
+                hybridConfig={hybridConfig}
+                onHybridConfigChange={setHybridConfig}
               />
               <button
                 onClick={() => setShowSettings(false)}
@@ -523,6 +527,22 @@ function App() {
                   </button>
                 )}
               </>
+            ) : isHumanDiscardPhase && canZimo ? (
+              <>
+                <button
+                  onClick={handleZimo}
+                  className="px-6 py-2 rounded-lg font-bold text-white bg-green-500 hover:bg-green-600 cursor-pointer"
+                >
+                  自摸胡
+                </button>
+                <button
+                  onClick={handlePass}
+                  disabled={isAITurn}
+                  className="px-6 py-2 rounded-lg font-bold text-white bg-gray-600 hover:bg-gray-700 disabled:opacity50 disabled:cursor-not-allowed"
+                >
+                  過
+                </button>
+              </>
             ) : (
               <div className="text-white/50 text-sm">等待中...</div>
             )}
@@ -542,6 +562,8 @@ function App() {
               onAIModeChange={setAIMode}
               llmConfig={llmConfig}
               onLLMConfigChange={setLLMConfig}
+              hybridConfig={hybridConfig}
+              onHybridConfigChange={setHybridConfig}
             />
             <button
               onClick={() => setShowSettings(false)}

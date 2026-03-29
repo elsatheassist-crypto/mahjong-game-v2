@@ -43,7 +43,7 @@ export interface AIAgent {
    * @param gameState - Current game state
    * @returns The tile to discard
    */
-  decideDiscard(player: Player, gameState: GameState): Tile;
+  decideDiscard(player: Player, gameState: GameState): Promise<Tile>;
   /**
    * Decide whether to perform a meld action (chi/peng/gang)
    * @param player - The AI player
@@ -55,7 +55,7 @@ export interface AIAgent {
     player: Player,
     availableActions: MeldAction[],
     gameState: GameState
-  ): AIDecision;
+  ): Promise<AIDecision>;
   /**
    * Decide whether to perform self-drawn actions (angang, upgrade)
    * @param player - The AI player
@@ -67,7 +67,7 @@ export interface AIAgent {
     player: Player,
     availableActions: MeldAction[],
     gameState: GameState
-  ): AIDecision;
+  ): Promise<AIDecision>;
   /**
    * Get random think time in milliseconds
    */

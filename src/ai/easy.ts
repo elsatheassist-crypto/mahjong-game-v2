@@ -7,11 +7,11 @@ import { AIAgent, AIConfig, AIDecision, createAIConfig, randomChoice } from './b
 export class EasyAI implements AIAgent {
   config: AIConfig = createAIConfig('easy');
 
-  decideDiscard(player: Player, gameState: GameState): Tile {
+  async decideDiscard(player: Player, gameState: GameState): Promise<Tile> {
     return randomChoice(player.hand);
   }
 
-  decideMeld(player: Player, availableActions: MeldAction[], gameState: GameState): AIDecision {
+  async decideMeld(player: Player, availableActions: MeldAction[], gameState: GameState): Promise<AIDecision> {
     const huAction = availableActions.find(action => action.type === 'hu');
     if (huAction) {
       return { action: 'meld', meldAction: huAction };
@@ -23,7 +23,7 @@ export class EasyAI implements AIAgent {
     return { action: 'pass' };
   }
 
-  decideSelfDrawn(player: Player, availableActions: MeldAction[], gameState: GameState): AIDecision {
+  async decideSelfDrawn(player: Player, availableActions: MeldAction[], gameState: GameState): Promise<AIDecision> {
     const huAction = availableActions.find(action => action.type === 'hu');
     if (huAction) {
       return { action: 'meld', meldAction: huAction };

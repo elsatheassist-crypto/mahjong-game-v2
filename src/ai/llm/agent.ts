@@ -1,8 +1,9 @@
 import { Tile, getTileDisplay } from '../../core/tile';
 import { Player } from '../../core/player';
 import { GameState } from '../../core/game';
+import { MeldAction } from '../../core/meld';
 import { AIConfig, AIDecision, createAIConfig } from '../base';
-import { LLMConfig, buildLLMPrompt, parseLLMResponse } from './index';
+import { LLMConfig, buildLLMPrompt, parseLLMResponse, buildSelfDrawnPrompt, parseSelfDrawnResponse, buildMeldPrompt, parseMeldResponse } from './index';
 import { callLLM } from './providers';
 
 // LLM AI is async, so it doesn't implement AIAgent directly
@@ -11,8 +12,8 @@ import { callLLM } from './providers';
 export interface LLMAIAgent {
   config: AIConfig;
   decide: (player: Player, gameState: GameState) => Promise<Tile>;
-  decideMeld: (player: Player, availableActions: unknown[], gameState: GameState) => AIDecision;
-  decideSelfDrawn: (player: Player, availableActions: unknown[], gameState: GameState) => AIDecision;
+  decideMeld: (player: Player, availableActions: MeldAction[], gameState: GameState) => Promise<AIDecision>;
+  decideSelfDrawn: (player: Player, availableActions: MeldAction[], gameState: GameState) => Promise<AIDecision>;
 }
 
 export function createLLMAgent(
@@ -47,12 +48,74 @@ export function createLLMAgent(
     }
   }
 
-  function decideMeld(player: Player, availableActions: unknown[], gameState: GameState): AIDecision {
-    return { action: 'pass' };
+  async function decideMeld(player: Player, availableActions: MeldAction[], gameState: GameState): Promise<AIDecision> {
+    // If no actions available, pass
+    if (availableActions.length === 0) {
+      return { action: 'pass' };
+    }
+
+    const prompt = buildMeldPrompt(player, availableActions, gameState);
+
+    try {
+      const response = await callLLM(prompt, llmConfig);
+      const choiceStr = parseMeldResponse(response.content);
+
+      if (choiceStr) {
+        const choiceIndex = parseInt(choiceStr, 10) - 1;
+        if (choiceIndex >= 0 && choiceIndex < availableActions.length) {
+          const selectedAction = availableActions[choiceIndex];
+          return { action: 'meld', meldAction: selectedAction };
+        }
+        // Check if choice is pass (last option)
+        if (choiceIndex === availableActions.length) {
+          return { action: 'pass' };
+        }
+      }
+
+      console.warn('LLM meld response parsing failed, using fallback');
+      return { action: 'pass' };
+    } catch (error) {
+      console.error('LLM AI meld error:', error);
+      return { action: 'pass' };
+    }
   }
 
-  function decideSelfDrawn(player: Player, availableActions: unknown[], gameState: GameState): AIDecision {
-    return { action: 'pass' };
+  async function decideSelfDrawn(
+    player: Player,
+    availableActions: MeldAction[],
+    gameState: GameState
+  ): Promise<AIDecision> {
+    // If no actions available, pass
+    if (availableActions.length === 0) {
+      return { action: 'pass' };
+    }
+
+    // Get the drawn tile from game state
+    const drawnTile = gameState.wall.tiles[gameState.wall.position - 1];
+    if (!drawnTile) {
+      return { action: 'pass' };
+    }
+
+    const prompt = buildSelfDrawnPrompt(player, drawnTile, availableActions, gameState);
+
+    try {
+      const response = await callLLM(prompt, llmConfig);
+      const choiceStr = parseSelfDrawnResponse(response.content);
+
+      if (choiceStr) {
+        const choiceIndex = parseInt(choiceStr, 10) - 1;
+        if (choiceIndex >= 0 && choiceIndex < availableActions.length) {
+          const selectedAction = availableActions[choiceIndex];
+          return { action: 'meld', meldAction: selectedAction };
+        }
+      }
+
+      console.warn('LLM self-drawn response parsing failed, using fallback');
+      return { action: 'pass' };
+    } catch (error) {
+      console.error('LLM AI self-drawn error:', error);
+      return { action: 'pass' };
+    }
   }
 
   return {

@@ -317,8 +317,8 @@ export function getAvailableActions(
     actions.push(gangOption);
   }
 
-  // Priority 3: 碰 (Peng)
-  const pengOption = getPengOption(player, discard);
+  // Priority 3: 碰 (Peng) - skip if gang option exists (gang takes priority)
+  const pengOption = gangOption ? null : getPengOption(player, discard);
   if (pengOption) {
     actions.push(pengOption);
   }
