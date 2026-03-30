@@ -19,7 +19,7 @@ import { drawTile } from '../core/wall';
 import { createAI } from '../ai';
 import { createLLMAgent } from '../ai/llm/agent';
 import { AIDecision } from '../ai/base';
-import { canWinByClaimingDiscard } from '../core/win';
+import { canWinByClaimingDiscard, checkWin } from '../core/win';
 import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
@@ -315,6 +315,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Get the drawn tile (the tile at wall.position - 1 is the last drawn)
       const drawnTile = newState.wall.tiles[newState.wall.position - 1];
       const aiPlayer = getCurrentPlayer(newState);
+
+      // Check for self-drawn win (自摸) before other actions
+      const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
+      if (winResult.isWin) {
+        const winState = setWinner(newState, newState.currentPlayer);
+        set({ state: winState, isAITurn: false });
+        return;
+      }
 
       // Check for self-drawn actions (angang, upgrade peng to gang)
       const selfDrawnActions = drawnTile ? getSelfDrawnActions(aiPlayer, drawnTile) : [];
