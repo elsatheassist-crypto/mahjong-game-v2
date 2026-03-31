@@ -287,7 +287,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const winType = state.turnAction === 'discard' ? 'zimo' : 'dianpao';
     const newState = setWinner(state, 0, winType);
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
+    set({ state: newState, selectedTileId: null });
   },
 
   confirmReveal: () => {
@@ -313,7 +313,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       players,
     };
 
-    set({ state: newState });
+    set({ state: newState, lastDrawnTileId: null });
   },
 
   startAITurnIfNeeded: () => {
