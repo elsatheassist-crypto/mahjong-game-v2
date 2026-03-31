@@ -96,7 +96,7 @@ const TileComponent: React.FC<TileProps> = ({
       className={`
         ${sizeClasses[size]}
         rounded-md border-2 
-        flex flex-col items-center justify-center
+        flex items-center justify-center relative
         transition-all duration-150
         ${highlighted
           ? 'border-yellow-400 bg-yellow-200 shadow-lg shadow-yellow-400/50 -translate-y-1 animate-pulse'
@@ -117,7 +117,7 @@ const TileComponent: React.FC<TileProps> = ({
       </span>
 
       {showLabel && (
-        <span className={`${labelSizeClasses[size]} ${colorClass} leading-tight mt-0.5 opacity-80`}>
+        <span className={`${labelSizeClasses[size]} ${colorClass} leading-tight opacity-80 absolute bottom-0.5`}>
           {getTileDisplay(tile)}
         </span>
       )}
