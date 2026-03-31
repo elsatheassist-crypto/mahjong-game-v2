@@ -16,6 +16,8 @@ export class NormalAI implements AIAgent {
     let bestTile = hand[0];
     let bestScore = Infinity;
 
+    const debugChoices: { tileId: string; shanten: number; improvements: number; danger: number; score: number }[] = [];
+
     for (let i = 0; i < hand.length; i++) {
       const testHand = hand.filter((_, idx) => idx !== i);
       const shanten = calculateShanten(testHand);
@@ -23,12 +25,15 @@ export class NormalAI implements AIAgent {
       const danger = calculateTileDanger(hand[i], gameState, this.getPlayerIndex(player, gameState));
 
       const score = shanten * 10 - improvements + danger * 0.5;
+      debugChoices.push({ tileId: hand[i].id, shanten, improvements, danger, score });
 
       if (score < bestScore) {
         bestScore = score;
         bestTile = hand[i];
       }
     }
+
+    console.log(`[DEBUG decideDiscard #${this.getPlayerIndex(player, gameState)}] bestTile=${bestTile.id} score=${bestScore} hand=${hand.length} options=${debugChoices.length}`, debugChoices.map(c => `${c.tileId}(s=${c.shanten},i=${c.improvements},d=${c.danger})`).join(' | '));
 
     return bestTile;
   }

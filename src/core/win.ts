@@ -64,6 +64,7 @@ export function checkWin(hand: Tile[], melds: Meld[]): WinResult {
 
   // Must be 17 tiles for standard win
   if (totalTiles !== 17) {
+    console.log(`[DEBUG checkWin] hand=${hand.length} meldTiles=${meldTiles} total=${totalTiles} → NOT 17, skip`);
     return { isWin: false, winType: null, waitingTiles: [] };
   }
 

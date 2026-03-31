@@ -345,6 +345,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const drawnTile = newState.wall.tiles[newState.wall.position - 1];
       const aiPlayer = getCurrentPlayer(newState);
 
+      // DEBUG: log AI hand status after drawing
+      const { calculateShanten } = await import('../ai/helpers');
+      const aiShanten = calculateShanten(aiPlayer.hand);
+      const aiMelds = aiPlayer.melds.length;
+      const aiHandSize = aiPlayer.hand.length;
+      const aiMeldTiles = aiPlayer.melds.reduce((s, m) => s + m.tiles.length, 0);
+      console.log(`[DEBUG AI #${newState.currentPlayer}] drawn=${drawnTile?.id} handSize=${aiHandSize} melds=${aiMelds}(${aiMeldTiles}tiles) total=${aiHandSize+aiMeldTiles} shanten=${aiShanten}`);
+
       // Check for self-drawn win (自摸) before other actions
       const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
       if (winResult.isWin) {
