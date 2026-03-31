@@ -16,17 +16,17 @@ interface TileProps {
 }
 
 const sizeClasses: Record<TileSize, string> = {
-  sm: 'w-8 h-10 text-lg',
-  md: 'w-10 h-14 text-xl',
-  lg: 'w-12 h-16 text-2xl',
-  xl: 'w-14 h-20 text-3xl',
+  sm: 'w-8 h-10 text-4xl',
+  md: 'w-10 h-14 text-5xl',
+  lg: 'w-12 h-16 text-5xl',
+  xl: 'w-14 h-20 text-6xl',
 };
 
 const labelSizeClasses: Record<TileSize, string> = {
-  sm: 'text-[6px]',
-  md: 'text-[8px]',
-  lg: 'text-[10px]',
-  xl: 'text-xs',
+  sm: 'text-xs',
+  md: 'text-base',
+  lg: 'text-lg',
+  xl: 'text-xl',
 };
 
 function getTileColorClass(tile: TileType): string {
