@@ -21,6 +21,7 @@ import { createLLMAgent } from '../ai/llm/agent';
 import { AIDecision } from '../ai/base';
 import { canWinByClaimingDiscard, checkWin } from '../core/win';
 import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
+import { calculateScoreBreakdown } from '../core/score';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -65,6 +66,7 @@ interface GameStore {
   chiActionWithOption: (option: MeldAction) => void;
   pengAction: () => void;
   winAction: () => void;
+  confirmReveal: () => void;
   executeAITurn: () => Promise<void>;
   startAITurnIfNeeded: () => void;
 }
@@ -183,7 +185,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const drawnResult = drawTile(state.wall);
     if (drawnResult.tile === null) {
-      set({ state: { ...state, phase: GamePhase.GAME_OVER } });
+      set({ state: { ...state, phase: GamePhase.REVEAL } });
       return;
     }
 
@@ -283,8 +285,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
 
-    const newState = setWinner(state, 0);
+    const winType = state.turnAction === 'discard' ? 'zimo' : 'dianpao';
+    const newState = setWinner(state, 0, winType);
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null });
+  },
+
+  confirmReveal: () => {
+    const { state } = get();
+    if (state.phase !== GamePhase.REVEAL) return;
+
+    const players = [...state.players];
+
+    if (state.winner !== null) {
+      const winner = players[state.winner];
+      const winType = state.winType === 'zimo' ? 'zimo' : undefined;
+      const scoreResult = calculateScoreBreakdown(winner.hand, winner.melds, winType);
+
+      players[state.winner] = {
+        ...winner,
+        score: winner.score + scoreResult.total,
+      };
+    }
+
+    const newState: GameState = {
+      ...state,
+      phase: GamePhase.GAME_OVER,
+      players,
+    };
+
+    set({ state: newState });
   },
 
   startAITurnIfNeeded: () => {
@@ -319,7 +348,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Check for self-drawn win (自摸) before other actions
       const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
       if (winResult.isWin) {
-        const winState = setWinner(newState, newState.currentPlayer);
+        const winState = setWinner(newState, newState.currentPlayer, 'zimo');
         set({ state: winState, isAITurn: false });
         return;
       }
@@ -360,7 +389,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
           if (meldAction.type === 'hu') {
             // Self-drawn win
-            const winState = setWinner(newState, newState.currentPlayer);
+            const winState = setWinner(newState, newState.currentPlayer, 'zimo');
             set({ state: winState, isAITurn: false });
             return;
           } else if (meldAction.type === 'angang' || meldAction.type === 'gang') {
@@ -593,7 +622,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const meldAction = decision.meldAction;
 
           if (meldAction.type === 'hu') {
-            newState = setWinner(state, state.currentPlayer);
+            newState = setWinner(state, state.currentPlayer, 'dianpao');
           } else if (meldAction.type === 'peng') {
             const handTileIds = meldAction.tiles.map(t => t.id);
             newState = playerPeng(state, state.currentPlayer, handTileIds, meldAction.meld.tiles);

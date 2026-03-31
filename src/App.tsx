@@ -25,6 +25,7 @@ function App() {
     chiActionWithOption,
     pengAction,
     winAction,
+    confirmReveal,
     setDifficulty,
     setAIMode,
     setLLMConfig,
@@ -205,8 +206,135 @@ function App() {
       </div>
     );
   }
+  // Show reveal screen
+  if (state.phase === GamePhase.REVEAL) {
+    const winner = state.winner !== null ? state.players[state.winner] : null;
+    const isHumanWinner = state.winner === humanIndex;
+
+    return (
+      <div className="min-h-screen bg-green-700 flex flex-col">
+        {/* Header */}
+        <div className="bg-green-900 p-3 flex justify-between items-center text-white text-sm">
+          <span className="font-bold">🀄 台灣16張麻將</span>
+          <div className="flex gap-4 items-center">
+            <span>牌牆：{remainingTiles} 張</span>
+            <span>難度：{difficulty === 'easy' ? '簡單' : difficulty === 'normal' ? '普通' : '困難'}</span>
+            <span>AI：{aiMode === 'llm' ? '🤖 LLM' : aiMode === 'hybrid' ? '🔀 混合' : '🧮 演算法'}</span>
+          </div>
+        </div>
+
+        {/* Game Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Top player (North) */}
+          <div className="flex justify-center p-2 bg-green-800/50">
+            <div className="text-center">
+              <div className="text-white text-xs mb-1">
+                北 {state.players[2].hand.length}張
+              </div>
+              <div className="flex gap-0.5 justify-center flex-wrap">
+                {state.players[2].hand.map((tile) => (
+                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                ))}
+              </div>
+              {state.players[2].melds.length > 0 && (
+                <div className="mt-1">
+                  <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Middle row */}
+          <div className="flex-1 flex">
+            {/* Left player (West) */}
+            <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
+              <div className="text-white text-xs mb-1">
+                西 {state.players[3].hand.length}張
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {state.players[3].hand.map((tile) => (
+                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                ))}
+              </div>
+              {state.players[3].melds.length > 0 && (
+                <div className="mt-1">
+                  <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} />
+                </div>
+              )}
+            </div>
+
+            {/* Center */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4">
+              <div className="text-2xl font-bold text-yellow-400">
+                {winner ? '🀄 胡牌！' : '🀄 流局'}
+              </div>
+              {winner && (
+                <div className="text-white text-lg">
+                  {isHumanWinner ? '🏆 恭喜，你贏了！' : `💀 ${winner.id} 胡牌`}
+                </div>
+              )}
+              <button
+                onClick={confirmReveal}
+                className="mt-4 px-6 py-2 rounded-lg font-bold text-black bg-yellow-500 hover:bg-yellow-600 transition-all cursor-pointer"
+              >
+                查看結算
+              </button>
+            </div>
+
+            {/* Right player (East) */}
+            <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
+              <div className="text-white text-xs mb-1">
+                東 {state.players[1].hand.length}張
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {state.players[1].hand.map((tile) => (
+                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                ))}
+              </div>
+              {state.players[1].melds.length > 0 && (
+                <div className="mt-1">
+                  <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom player (Human) */}
+          <div className="p-4 bg-green-900/50">
+            {humanPlayer.melds.length > 0 && (
+              <div className="mb-3 flex justify-center">
+                <MeldArea melds={humanPlayer.melds} isHuman={true} />
+              </div>
+            )}
+            <div className="text-center mb-4">
+              <div className="text-white text-sm mb-2">
+                👤 你的手牌（南）— {humanPlayer.hand.length} 張
+              </div>
+
+              <div className="flex flex-wrap gap-1 justify-center">
+                {humanPlayer.hand
+                  .sort((a, b) => {
+                    if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
+                    return a.value - b.value;
+                  })
+                  .map((tile) => (
+                    <Tile
+                      key={tile.id}
+                      tile={tile}
+                      size="md"
+                      showLabel={false}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show game over screen
+
   if (state.phase === GamePhase.GAME_OVER || state.winner !== null) {
     const winner = state.winner !== null ? state.players[state.winner] : null;
     const isHumanWinner = state.winner === humanIndex;

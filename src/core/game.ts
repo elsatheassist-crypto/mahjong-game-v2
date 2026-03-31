@@ -9,6 +9,7 @@ export enum GamePhase {
   DEALING = 'dealing',
   PLAYING = 'playing',
   WAITING = 'waiting',
+  REVEAL = 'reveal',
   GAME_OVER = 'game_over',
 }
 
@@ -22,6 +23,7 @@ export interface GameState {
   lastDiscard: Tile | null;
   lastDiscardPlayer: number | null;
   winner: number | null;
+  winType: 'zimo' | 'dianpao' | null;
   round: number;
   turnAction: 'draw' | 'discard' | 'waiting';
   wind: PlayerSeat;
@@ -47,6 +49,7 @@ export function createInitialState(): GameState {
     lastDiscard: null,
     lastDiscardPlayer: null,
     winner: null,
+    winType: null,
     round: 1,
     turnAction: 'draw',
     wind: 'east',
@@ -98,7 +101,7 @@ export function playerDrawTile(state: GameState, playerIndex: number): GameState
 
   const result = drawTile(state.wall);
   if (result.tile === null) {
-    return { ...state, phase: GamePhase.GAME_OVER };
+    return { ...state, phase: GamePhase.REVEAL };
   }
 
   const players = [...state.players];
@@ -153,7 +156,7 @@ export function nextTurn(state: GameState): GameState {
 
   const result = drawTile(state.wall);
   if (result.tile === null) {
-    return { ...state, phase: GamePhase.GAME_OVER };
+    return { ...state, phase: GamePhase.REVEAL };
   }
 
   const players = [...state.players];
@@ -261,7 +264,7 @@ export function getHumanPlayer(state: GameState): Player | undefined {
 }
 
 export function isGameOver(state: GameState): boolean {
-  return state.phase === GamePhase.GAME_OVER || state.winner !== null;
+  return state.phase === GamePhase.GAME_OVER || state.phase === GamePhase.REVEAL || state.winner !== null;
 }
 
 export function getRemainingTiles(state: GameState): number {
@@ -277,11 +280,16 @@ export function checkWin(state: GameState, playerIndex: number): boolean {
   return handSize === 17 || handSize === 16;
 }
 
-export function setWinner(state: GameState, winnerIndex: number): GameState {
+export function setWinner(
+  state: GameState,
+  winnerIndex: number,
+  winType?: 'zimo' | 'dianpao'
+): GameState {
   return {
     ...state,
-    phase: GamePhase.GAME_OVER,
+    phase: GamePhase.REVEAL,
     winner: winnerIndex,
+    winType: winType ?? null,
   };
 }
 
