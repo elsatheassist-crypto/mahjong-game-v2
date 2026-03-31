@@ -393,7 +393,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             set({ state: winState, isAITurn: false });
             return;
           } else if (meldAction.type === 'angang' || meldAction.type === 'gang') {
-            // Execute gang meld: remove tiles from hand, add meld
+            // Execute gang meld: remove tiles from hand, add meld, draw replacement tile
+            let wall = newState.wall;
             const players = [...newState.players];
             const player = players[newState.currentPlayer];
 
@@ -408,27 +409,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
 
             // Add the meld
-            const updatedPlayer = {
+            updatedHand = [...updatedHand];
+            const updatedMelds = [...player.melds, meldAction.meld];
+
+            // Draw a replacement tile from the wall (補槓)
+            const drawResult = drawTile(wall);
+            if (drawResult.tile) {
+              updatedHand.push(drawResult.tile);
+              wall = drawResult.wall;
+            }
+
+            players[newState.currentPlayer] = {
               ...player,
               hand: updatedHand,
-              melds: [...player.melds, meldAction.meld],
+              melds: updatedMelds,
             };
-            players[newState.currentPlayer] = updatedPlayer;
 
             const meldState: GameState = {
               ...newState,
+              wall,
               players,
               turnAction: 'discard',
               lastAction: meldAction.type,
               lastMeldAction: {
-                type: meldAction.type === 'angang' ? 'gang' : 'gang',
+                type: 'gang',
                 player: newState.currentPlayer,
                 tile: drawnTile!,
               },
             };
 
             set({ state: meldState });
-            // After meld, AI needs to discard
+            // After gang meld, AI needs to discard
             setTimeout(() => get().executeAITurn(), 800);
             return;
           }

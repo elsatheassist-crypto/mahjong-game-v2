@@ -402,6 +402,7 @@ export function playerPeng(
 /**
  * Player claims gang (kong) - forms a quad meld from discard
  * Removes 3 tiles from hand, adds meld with discard
+ * Player draws a replacement tile from the back of the wall
  * Player must then discard a tile
  */
 export function playerGang(
@@ -414,11 +415,12 @@ export function playerGang(
   if (state.turnAction !== 'waiting') return state;
   if (!state.lastDiscard || state.lastDiscardPlayer === null) return state;
 
+  let wall = state.wall;
   const players = [...state.players];
   const player = players[playerIndex];
 
   // Remove tiles from hand
-  const updatedPlayer = removeTilesFromHandByIds(player, handTileIds);
+  let updatedPlayer = removeTilesFromHandByIds(player, handTileIds);
 
   // Add the meld
   const meld = {
@@ -427,10 +429,19 @@ export function playerGang(
     source: state.lastDiscard,
   };
   updatedPlayer.melds = [...updatedPlayer.melds, meld];
+
+  // Draw a replacement tile from the wall (補槓)
+  const drawResult = drawTile(wall);
+  if (drawResult.tile) {
+    updatedPlayer = addTileToHand(updatedPlayer, drawResult.tile);
+    wall = drawResult.wall;
+  }
+
   players[playerIndex] = updatedPlayer;
 
   return {
     ...state,
+    wall,
     players,
     currentPlayer: playerIndex,
     turnAction: 'discard',
