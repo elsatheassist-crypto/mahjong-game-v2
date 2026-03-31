@@ -100,9 +100,9 @@ export const TILE_UNICODE: Record<Suit, Record<number, string>> = {
     4: '🀃',
   },
   [Suit.JIAN]: {
-    1: '🀄',
-    2: '🀅',
-    3: '🀆',
+    1: '\uD83C\uDC04\uFE0E',
+    2: '\uD83C\uDC05\uFE0E',
+    3: '\uD83C\uDC06\uFE0E',
   },
 };
 

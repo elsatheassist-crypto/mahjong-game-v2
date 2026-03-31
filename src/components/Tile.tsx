@@ -94,33 +94,33 @@ const TileComponent: React.FC<TileProps> = ({
       onDoubleClick={disabled ? undefined : onDoubleClick}
       disabled={disabled}
        className={`
-         ${sizeClasses[size]}
-         rounded-md border-2 
-         relative p-0 box-border
-         transition-all duration-150
-         ${highlighted
-           ? 'border-yellow-400 bg-yellow-200 shadow-lg shadow-yellow-400/50 -translate-y-1 animate-pulse'
-           : selected
-             ? 'border-yellow-400 bg-yellow-100 shadow-lg -translate-y-2'
-             : `${bgAccent} border-gray-300 shadow hover:shadow-lg hover:-translate-y-1`
-         }
-         ${disabled
-           ? 'opacity-50 cursor-not-allowed'
-           : onClick
-             ? 'cursor-pointer'
-             : 'cursor-default'
-         }
-       `}
+          ${sizeClasses[size]}
+          rounded-md border-2 
+          relative p-0 box-border
+          transition-all duration-150
+          ${highlighted
+            ? 'border-yellow-400 bg-yellow-200 shadow-lg shadow-yellow-400/50 -translate-y-1 animate-pulse'
+            : selected
+              ? 'border-yellow-400 bg-yellow-100 shadow-lg -translate-y-2'
+              : `${bgAccent} border-gray-300 shadow hover:shadow-lg hover:-translate-y-1`
+          }
+          ${disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : onClick
+              ? 'cursor-pointer'
+              : 'cursor-default'
+          }
+        `}
     >
-       <span className={`absolute inset-0 flex items-center justify-center font-bold ${colorClass}`}>
-         {getTileUnicode(tile)}
-       </span>
+        <span className={`absolute inset-0 flex items-center justify-center font-bold ${colorClass} leading-[1] -translate-y-[12%]`} style={{ fontFamily: '"Segoe UI Symbol", "Noto Sans Symbols", sans-serif' }}>
+          {getTileUnicode(tile)}
+        </span>
 
-       {showLabel && (
-         <span className={`${labelSizeClasses[size]} ${colorClass} leading-tight opacity-80 absolute bottom-0.5 right-1`}>
-           {getTileDisplay(tile)}
-         </span>
-       )}
+        {showLabel && (
+          <span className={`${labelSizeClasses[size]} ${colorClass} leading-tight opacity-80 absolute bottom-0.5 right-1`}>
+            {getTileDisplay(tile)}
+          </span>
+        )}
     </button>
   );
 };
