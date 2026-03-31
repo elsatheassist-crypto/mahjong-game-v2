@@ -352,6 +352,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const aiHandSize = aiPlayer.hand.length;
       const aiMeldTiles = aiPlayer.melds.reduce((s, m) => s + m.tiles.length, 0);
       console.log(`[DEBUG AI #${newState.currentPlayer}] drawn=${drawnTile?.id} handSize=${aiHandSize} melds=${aiMelds}(${aiMeldTiles}tiles) total=${aiHandSize+aiMeldTiles} shanten=${aiShanten}`);
+      console.log(`[DEBUG AI #${newState.currentPlayer} hand]`, aiPlayer.hand.map(t => `${t.suit[0]}${t.value}`).join(' '), '| melds:', aiPlayer.melds.map(m => m.type + ':' + m.tiles.map(t2 => `${t2.suit[0]}${t2.value}`).join('')).join(' '));
 
       // Check for self-drawn win (自摸) before other actions
       const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
