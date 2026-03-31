@@ -16,10 +16,10 @@ interface TileProps {
 }
 
 const sizeClasses: Record<TileSize, string> = {
-  sm: 'w-8 h-10 text-4xl',
-  md: 'w-10 h-14 text-5xl',
-  lg: 'w-12 h-16 text-5xl',
-  xl: 'w-14 h-20 text-6xl',
+  sm: 'w-10 h-12 text-4xl',
+  md: 'w-12 h-16 text-5xl',
+  lg: 'w-14 h-20 text-5xl',
+  xl: 'w-16 h-24 text-6xl',
 };
 
 const labelSizeClasses: Record<TileSize, string> = {
