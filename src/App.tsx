@@ -48,6 +48,13 @@ function App() {
   const isHumanWaitingPhase = isHumanTurn && state.turnAction === 'waiting';
   const remainingTiles = state.wall.tiles.length - state.wall.position;
 
+  const SEAT_ID_TO_LABEL: Record<string, string> = {
+    east: '東家',
+    south: '南家',
+    west: '西家',
+    north: '北家',
+  };
+
   // Compute canChi, canPeng, canWin when there's a discard to consider
   const canChiPeng = useMemo(() => {
     if (state.phase !== GamePhase.PLAYING) {
@@ -270,7 +277,7 @@ function App() {
               </div>
               {winner && (
                 <div className="text-white text-lg">
-                  {isHumanWinner ? '🏆 恭喜，你贏了！' : `💀 ${winner.id} 胡牌`}
+                  {isHumanWinner ? '🏆 恭喜，你贏了！' : `💀 ${SEAT_ID_TO_LABEL[winner.id] || winner.id} 胡牌`}
                 </div>
               )}
 
@@ -522,11 +529,6 @@ function App() {
             {getLastActionText() && (
               <div className="text-white/80 text-sm">{getLastActionText()}</div>
             )}
-
-            <div className="text-white text-center opacity-50">
-              <div className="text-2xl">🀫</div>
-              <div className="text-xs">{remainingTiles} 張</div>
-            </div>
 
             <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
               <div className="flex flex-wrap gap-1 justify-start content-start">
