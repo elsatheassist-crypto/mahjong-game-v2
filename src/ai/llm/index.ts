@@ -53,7 +53,7 @@ ${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
     prompt += `\n你的吃碰槓組：${myMelds}`;
   }
 
-  prompt += `
+   prompt += `
 【任務】
 請選擇一張要打出去的麻將牌。
 規則：
@@ -61,19 +61,35 @@ ${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
 2. 避免打可能讓別人胡的危險牌
 3. 如果是字牌（東南西北中發白）且沒有對子，通常先打
 
-請用以下格式回覆：
-思維過程：[你的思考]
-選擇的牌：[牌名，例如：三萬]
+請以JSON格式回覆，格式如下：
+{
+  "reasoning": "你的思考過程（可選）",
+  "tile_name": "選擇的牌名，例如：三萬"
+}
 `;
 
   return prompt;
 }
 
 export function parseLLMResponse(response: string): string | null {
+  // Try JSON parsing first
+  try {
+    // Strip markdown code blocks if present
+    const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed.tile_name && typeof parsed.tile_name === 'string') {
+      return parsed.tile_name;
+    }
+  } catch {
+    // Fallback to regex
+  }
+
+  // Regex fallback for backward compatibility
   const match = response.match(/選擇的牌[：:]\s*(.+)/);
   if (match) {
     return match[1].trim();
   }
+
   return null;
 }
 
@@ -174,9 +190,11 @@ ${actionChoices || '無'}
 3. 加槓可以將碰轉為槓，增加台數
 4. 如果沒有特別的優勢，可以選擇放棄
 
-請用以下格式回覆：
-思維過程：[你的思考]
-選擇的動作：[選項編號，例如：1]
+請以JSON格式回覆，格式如下：
+{
+  "reasoning": "你的思考過程（可選）",
+  "action_index": 1
+}
 `;
 
   return prompt;
@@ -187,13 +205,21 @@ ${actionChoices || '無'}
  * Returns the action type string or null if parsing fails
  */
 export function parseSelfDrawnResponse(response: string): string | null {
-  // Match "選擇的動作：[number]" pattern
-  const match = response.match(/選擇的動作[：:]\s*(\d+)/);
-  if (match) {
-    const choiceIndex = parseInt(match[1], 10);
-    return choiceIndex.toString();
+  // Try JSON parsing first
+  try {
+    // Strip markdown code blocks if present
+    const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed.action_index === 'number') {
+      return parsed.action_index.toString();
+    }
+  } catch {
+    // Fallback to regex
   }
-  return null;
+
+  // Regex fallback for backward compatibility
+  const match = response.match(/選擇的動作[：:]\s*(\d+)/);
+  return match ? match[1] : null;
 }
 
 /**
@@ -284,8 +310,8 @@ ${discardPlayer} 打出：${discardDisplay}
     prompt += `\n你的吃碰槓組：${myMelds}`;
   }
 
-  // Add available meld actions
-  prompt += `
+   // Add available meld actions
+   prompt += `
 【可執行的動作】
 ${actionChoices || '無'}
 ${passOptionNum}. pass：放棄
@@ -298,9 +324,11 @@ ${passOptionNum}. pass：放棄
 3. 吃只能從上家（左邊的玩家）的捨牌
 4. 如果沒有好的組合，選擇 pass
 
-請用以下格式回覆：
-思維過程：[你的思考]
-選擇的動作：[選項編號，例如：1]
+請以JSON格式回覆，格式如下：
+{
+  "reasoning": "你的思考過程（可選）",
+  "action_index": 1
+}
 `;
 
   return prompt;
@@ -311,11 +339,19 @@ ${passOptionNum}. pass：放棄
  * Returns the action index string (1-based) or null if parsing fails
  */
 export function parseMeldResponse(response: string): string | null {
-  // Match "選擇的動作：[number]" pattern
-  const match = response.match(/選擇的動作[：:]\s*(\d+)/);
-  if (match) {
-    const choiceIndex = parseInt(match[1], 10);
-    return choiceIndex.toString();
+  // Try JSON parsing first
+  try {
+    // Strip markdown code blocks if present
+    const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed.action_index === 'number') {
+      return parsed.action_index.toString();
+    }
+  } catch {
+    // Fallback to regex
   }
-  return null;
+
+  // Regex fallback for backward compatibility
+  const match = response.match(/選擇的動作[：:]\s*(\d+)/);
+  return match ? match[1] : null;
 }

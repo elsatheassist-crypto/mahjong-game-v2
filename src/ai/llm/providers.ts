@@ -21,41 +21,43 @@ export async function callLLM(
     'Content-Type': 'application/json',
   };
 
-  if (provider === 'minimax') {
-    endpoint = baseUrl || 'https://api.minimax.io/anthropic';
-    headers['Authorization'] = `Bearer ${apiKey}`;
-    body = {
-      model: model || 'MiniMax-M2.7',
-      messages: [{ role: 'user', content: prompt }],
-      temperature,
-      max_tokens: 300,
-    };
-  } else if (provider === 'openrouter') {
-    endpoint = baseUrl || 'https://openrouter.ai/api/v1/chat/completions';
-    headers['Authorization'] = `Bearer ${apiKey}`;
-    headers['HTTP-Referer'] = 'https://mahjong.local';
-    headers['x-title'] = 'Taiwan Mahjong AI';
-    body = {
-      model: model || 'google/gemini-2.0-flash-exp',
-      messages: [{ role: 'user', content: prompt }],
-      temperature,
-      max_tokens: 200,
-    };
-  } else if (provider === 'gemini') {
-    endpoint = baseUrl || `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent`;
-    headers['x-goog-api-key'] = apiKey;
-    body = {
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature,
-        maxOutputTokens: 200,
-      },
-    };
-  }
+   if (provider === 'minimax') {
+     endpoint = baseUrl || 'https://api.minimax.io/anthropic';
+     headers['Authorization'] = `Bearer ${apiKey}`;
+     body = {
+       model: model || 'MiniMax-M2.7',
+       messages: [{ role: 'user', content: prompt }],
+       temperature,
+       max_tokens: 300,
+     };
+   } else if (provider === 'openrouter') {
+     endpoint = baseUrl || 'https://openrouter.ai/api/v1/chat/completions';
+     headers['Authorization'] = `Bearer ${apiKey}`;
+     headers['HTTP-Referer'] = 'https://mahjong.local';
+     headers['x-title'] = 'Taiwan Mahjong AI';
+     body = {
+       model: model || 'google/gemini-2.0-flash-exp',
+       messages: [{ role: 'user', content: prompt }],
+       temperature,
+       max_tokens: 300,
+       response_format: { type: "json_object" },
+     };
+   } else if (provider === 'gemini') {
+     endpoint = baseUrl || `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent`;
+     headers['x-goog-api-key'] = apiKey;
+     body = {
+       contents: [
+         {
+           parts: [{ text: prompt }],
+         },
+       ],
+       generationConfig: {
+         temperature,
+         maxOutputTokens: 300,
+         responseMimeType: "application/json",
+       },
+     };
+   }
 
   try {
     const response = await fetch(endpoint!, {
