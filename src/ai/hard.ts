@@ -47,8 +47,7 @@ export class HardAI implements AIAgent {
         score = (shanten - newShanten) * 100 + improvements * 0.5 - danger * 0.1;
       }
 
-      const tileValue = this.evaluateTileValue(hand[i], hand);
-      // tileValue 只在同向聽數時做微調
+      const tileValue = this.evaluateTileValue(hand[i], hand, shanten);
       score -= tileValue * 0.1;
 
       debugChoices.push({ tileId: hand[i].id, shanten: newShanten, improvements, danger, tileValue, score });
@@ -204,7 +203,7 @@ export class HardAI implements AIAgent {
     return false;
   }
 
-  private evaluateTileValue(tile: Tile, hand: Tile[]): number {
+  private evaluateTileValue(tile: Tile, hand: Tile[], shanten: number): number {
     let value = 0;
     const counts = countTiles(hand);
     const key = getTileKey(tile);
@@ -230,8 +229,16 @@ export class HardAI implements AIAgent {
       }
     }
 
-    if (tile.suit === Suit.JIAN) value += 2;
-    if (tile.suit === Suit.FENG) value += 1;
+    if (tile.suit === Suit.JIAN) {
+      value += 2;
+    } else if (tile.suit === Suit.FENG) {
+      value += 1;
+    }
+
+    if ((tile.suit === Suit.JIAN || tile.suit === Suit.FENG) && count === 1) {
+      const isolationPenalty = Math.max(0, shanten - 2) * 1.5;
+      value -= isolationPenalty;
+    }
 
     return value;
   }

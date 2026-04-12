@@ -62,9 +62,12 @@ export function checkWin(hand: Tile[], melds: Meld[]): WinResult {
   const meldTiles = melds.reduce((sum, m) => sum + m.tiles.length, 0);
   const totalTiles = hand.length + meldTiles;
 
-  // Must be 17 tiles for standard win
-  if (totalTiles !== 17) {
-    console.log(`[DEBUG checkWin] hand=${hand.length} meldTiles=${meldTiles} total=${totalTiles} → NOT 17, skip`);
+  // Calculate expected tile count: 17 + number of gang melds (each gang adds 1 tile)
+  const gangCount = melds.filter(m => m.tiles.length === 4).length;
+  const expectedTiles = 17 + gangCount;
+
+  if (totalTiles !== expectedTiles) {
+    console.log(`[DEBUG checkWin] hand=${hand.length} meldTiles=${meldTiles} total=${totalTiles} expected=${expectedTiles} (gangs=${gangCount}) → skip`);
     return { isWin: false, winType: null, waitingTiles: [] };
   }
 
