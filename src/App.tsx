@@ -238,7 +238,7 @@ function App() {
               </div>
               {state.players[2].melds.length > 0 && (
                 <div className="mt-1">
-                  <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} />
+                  <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
             </div>
@@ -258,7 +258,7 @@ function App() {
               </div>
               {state.players[3].melds.length > 0 && (
                 <div className="mt-1">
-                  <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} />
+                  <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
             </div>
@@ -293,7 +293,7 @@ function App() {
               </div>
               {state.players[1].melds.length > 0 && (
                 <div className="mt-1">
-                  <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} />
+                  <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
             </div>
@@ -303,7 +303,7 @@ function App() {
           <div className="p-4 bg-green-900/50">
             {humanPlayer.melds.length > 0 && (
               <div className="mb-3 flex justify-center">
-                <MeldArea melds={humanPlayer.melds} isHuman={true} />
+                <MeldArea melds={humanPlayer.melds} isHuman={true} forceReveal={true} />
               </div>
             )}
             <div className="text-center mb-4">

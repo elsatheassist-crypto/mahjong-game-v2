@@ -7,6 +7,8 @@ interface MeldAreaProps {
   melds: Meld[];
   isHuman?: boolean;
   compact?: boolean;
+  /** Override faceDown for angang melds when game has ended (for reveal/game-over). */
+  forceReveal?: boolean;
 }
 
 const MELD_COLORS: Record<MeldType, string> = {
@@ -25,7 +27,7 @@ function getChiDisplayTiles(meld: Meld): Tile[] {
   return [handTiles[0], claimed, handTiles[1]];
 }
 
-function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
+function MeldArea({ melds, isHuman = false, compact = false, forceReveal = false }: MeldAreaProps) {
   if (melds.length === 0) {
     return null;
   }
@@ -48,7 +50,7 @@ function MeldArea({ melds, isHuman = false, compact = false }: MeldAreaProps) {
                 key={`${tile.id}-${tileIndex}`}
                 tile={tile}
                 size={compact ? 'sm' : 'md'}
-                faceDown={meld.type === 'angang' && meld.source === 'self' && !isHuman}
+                faceDown={meld.type === 'angang' && meld.source === 'self' && !isHuman && !forceReveal}
                 showLabel={false}
               />
             ))}
