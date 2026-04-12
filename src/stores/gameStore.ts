@@ -27,6 +27,7 @@ import { calculateScoreBreakdown } from '../core/score';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
+export type TileSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'auto';
 
 interface LLMConfigData {
   provider: 'minimax' | 'openrouter' | 'gemini';
@@ -45,6 +46,7 @@ interface GameStore {
   difficulty: AIDifficulty;
   aiMode: AIMode;
   soundEnabled: boolean;
+  tileSize: TileSize;
   isAITurn: boolean;
   selectedTileId: string | null;
   lastDrawnTileId: string | null;
@@ -57,6 +59,7 @@ interface GameStore {
   setDifficulty: (d: AIDifficulty) => void;
   setAIMode: (m: AIMode) => void;
   setSoundEnabled: (e: boolean) => void;
+  setTileSize: (s: TileSize) => void;
   setLLMConfig: (c: LLMConfigData | null) => void;
   setHybridConfig: (c: Partial<HybridConfig>) => void;
 
@@ -138,11 +141,36 @@ function saveHybridConfig(config: HybridConfig): void {
   }
 }
 
+const TILE_SIZE_STORAGE_KEY = 'mahjong-tile-size';
+const DEFAULT_TILE_SIZE: TileSize = 'auto';
+
+function loadTileSize(): TileSize {
+  try {
+    const stored = localStorage.getItem(TILE_SIZE_STORAGE_KEY);
+    if (stored) {
+      const size = stored as TileSize;
+      if (['xs', 'sm', 'md', 'lg', 'xl', 'auto'].includes(size)) {
+        return size;
+      }
+    }
+  } catch {
+  }
+  return DEFAULT_TILE_SIZE;
+}
+
+function saveTileSize(size: TileSize): void {
+  try {
+    localStorage.setItem(TILE_SIZE_STORAGE_KEY, size);
+  } catch {
+  }
+}
+
 export const useGameStore = create<GameStore>((set, get) => ({
   state: createInitialState(),
   difficulty: 'hard',
   aiMode: 'algorithm',
   soundEnabled: true,
+  tileSize: loadTileSize(),
   isAITurn: false,
   selectedTileId: null,
   lastDrawnTileId: null,
@@ -163,6 +191,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setDifficulty: (difficulty) => set({ difficulty }),
   setAIMode: (aiMode) => set({ aiMode }),
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
+  setTileSize: (tileSize) => {
+    saveTileSize(tileSize);
+    set({ tileSize });
+  },
   setLLMConfig: (llmConfig) => {
     saveLLMConfig(llmConfig);
     set({ llmConfig });

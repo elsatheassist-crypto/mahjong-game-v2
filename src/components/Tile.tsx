@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tile as TileType, getTileUnicode, getTileDisplay, Suit } from '../core/tile';
 
-type TileSize = 'sm' | 'md' | 'lg' | 'xl';
+export type TileSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface TileProps {
   tile: TileType;
@@ -15,19 +15,34 @@ interface TileProps {
   showLabel?: boolean;
 }
 
-const sizeClasses: Record<TileSize, string> = {
-  sm: 'w-10 h-12 text-4xl',
-  md: 'w-12 h-16 text-5xl',
-  lg: 'w-14 h-20 text-5xl',
+export const sizeClasses: Record<TileSize, string> = {
+  xs: 'w-8 h-10 text-2xl',
+  sm: 'w-9 h-11 text-3xl',
+  md: 'w-11 h-14 text-4xl',
+  lg: 'w-14 h-[4.5rem] text-5xl',
   xl: 'w-16 h-24 text-6xl',
 };
 
-const labelSizeClasses: Record<TileSize, string> = {
+export const labelSizeClasses: Record<TileSize, string> = {
+  xs: 'text-[10px]',
   sm: 'text-xs',
-  md: 'text-base',
-  lg: 'text-lg',
-  xl: 'text-xl',
+  md: 'text-sm',
+  lg: 'text-base',
+  xl: 'text-lg',
 };
+
+export function getResponsiveTileSize(): TileSize {
+  if (typeof window === 'undefined') return 'md';
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const minDimension = Math.min(width, height);
+
+  if (minDimension < 375) return 'xs';
+  if (minDimension < 400) return 'sm';
+  if (minDimension < 768) return 'md';
+  if (minDimension < 1024) return 'lg';
+  return 'xl';
+}
 
 function getTileColorClass(tile: TileType): string {
   switch (tile.suit) {
