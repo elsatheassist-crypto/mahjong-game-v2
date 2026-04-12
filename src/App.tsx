@@ -273,6 +273,23 @@ function App() {
                   {isHumanWinner ? '🏆 恭喜，你贏了！' : `💀 ${winner.id} 胡牌`}
                 </div>
               )}
+
+              <div className="mt-4 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
+                <div className="flex flex-wrap gap-1 justify-start content-start">
+                  {state.discardSequence.map((tile) => (
+                    <Tile
+                      key={tile.id}
+                      tile={tile}
+                      size="sm"
+                      showLabel={false}
+                    />
+                  ))}
+                </div>
+                {state.discardSequence.length === 0 && (
+                  <div className="text-white/30 text-xs text-center py-4">尚無捨牌</div>
+                )}
+              </div>
+
               <button
                 onClick={confirmReveal}
                 className="mt-4 px-6 py-2 rounded-lg font-bold text-black bg-yellow-500 hover:bg-yellow-600 transition-all cursor-pointer"
