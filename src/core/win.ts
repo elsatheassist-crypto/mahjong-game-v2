@@ -68,6 +68,10 @@ export function checkWin(hand: Tile[], melds: Meld[]): WinResult {
 
   if (totalTiles !== expectedTiles) {
     console.log(`[DEBUG checkWin] hand=${hand.length} meldTiles=${meldTiles} total=${totalTiles} expected=${expectedTiles} (gangs=${gangCount}) → skip`);
+    // WARNING: if meldTiles !== gangCount * 4, there's a non-gang meld counted incorrectly
+    if (meldTiles !== gangCount * 4) {
+      console.log(`[DEBUG checkWin WARNING] melds detail:`, melds.map(m => ({ type: m.type, tilesLen: m.tiles.length })));
+    }
     return { isWin: false, winType: null, waitingTiles: [] };
   }
 
