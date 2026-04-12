@@ -63,7 +63,7 @@ export function calculateShanten(tiles: Tile[]): number {
 
     if (count >= 2 && !hasPair) {
       counts.set(key, count - 2);
-      search(counts, keys, idx, complete, incomplete + 1, true);
+      search(counts, keys, idx, complete, incomplete, true);
       counts.set(key, count);
     }
 
