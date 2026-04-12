@@ -139,7 +139,7 @@ function saveHybridConfig(config: HybridConfig): void {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   state: createInitialState(),
-  difficulty: 'normal',
+  difficulty: 'hard',
   aiMode: 'algorithm',
   soundEnabled: true,
   isAITurn: false,
