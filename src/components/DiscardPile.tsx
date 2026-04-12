@@ -1,16 +1,18 @@
 import React from 'react';
 import { Tile as TileType, compareTiles } from '../core/tile';
-import Tile from './Tile';
+import Tile, { TileSize, getDiscardTileSize } from './Tile';
 
 interface DiscardPileProps {
   tiles: TileType[];
   isHuman?: boolean;
+  tileSize?: TileSize;
 }
 
 const TILES_PER_ROW = 16;
 
-const DiscardPile: React.FC<DiscardPileProps> = ({ tiles, isHuman = false }) => {
+const DiscardPile: React.FC<DiscardPileProps> = ({ tiles, isHuman = false, tileSize = 'md' }) => {
   const sortedTiles = [...tiles].sort(compareTiles);
+  const discardSize = getDiscardTileSize(tileSize);
 
   if (tiles.length === 0) {
     return (
@@ -34,7 +36,7 @@ const DiscardPile: React.FC<DiscardPileProps> = ({ tiles, isHuman = false }) => 
             <Tile
               key={tile.id}
               tile={tile}
-              size="sm"
+              size={discardSize}
               selected={false}
             />
           ))}

@@ -44,6 +44,14 @@ export function getResponsiveTileSize(): TileSize {
   return 'xl';
 }
 
+const sizeOrder: TileSize[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+
+export function getDiscardTileSize(handSize: TileSize): TileSize {
+  const index = sizeOrder.indexOf(handSize);
+  const discardIndex = Math.max(0, index - 2);
+  return sizeOrder[discardIndex];
+}
+
 function getTileColorClass(tile: TileType): string {
   switch (tile.suit) {
     case Suit.WAN:

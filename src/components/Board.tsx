@@ -4,6 +4,7 @@ import { Player } from '../core/player';
 import Hand from './Hand';
 import DiscardPile from './DiscardPile';
 import ActionBar, { ActionType } from './ActionBar';
+import { TileSize } from './Tile';
 
 interface PlayerInfo {
   player: Player;
@@ -19,6 +20,7 @@ interface BoardProps {
   onTileSelect: (playerIndex: number, tile: TileType) => void;
   selectedTileId?: string | null;
   remainingTiles: number;
+  tileSize?: TileSize;
 }
 
 const positionClasses = {
@@ -44,6 +46,7 @@ const Board: React.FC<BoardProps> = ({
   onTileSelect,
   selectedTileId,
   remainingTiles,
+  tileSize = 'md',
 }) => {
   // Find human player
   const humanPlayer = players.find((p) => p.player.isHuman);
@@ -92,7 +95,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={17}
             />
-            <DiscardPile tiles={orderedPlayers[0].player.discards} />
+            <DiscardPile tiles={orderedPlayers[0].player.discards} tileSize={tileSize} />
           </div>
         </div>
 
@@ -109,7 +112,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={9}
             />
-            <DiscardPile tiles={orderedPlayers[3].player.discards} />
+            <DiscardPile tiles={orderedPlayers[3].player.discards} tileSize={tileSize} />
           </div>
 
           {/* Center Area */}
@@ -144,7 +147,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={9}
             />
-            <DiscardPile tiles={orderedPlayers[1].player.discards} />
+            <DiscardPile tiles={orderedPlayers[1].player.discards} tileSize={tileSize} />
           </div>
         </div>
 
@@ -179,7 +182,7 @@ const Board: React.FC<BoardProps> = ({
           )}
 
           {/* Human's Discard Pile */}
-          {humanPlayer && <DiscardPile tiles={humanPlayer.player.discards} isHuman={true} />}
+          {humanPlayer && <DiscardPile tiles={humanPlayer.player.discards} isHuman={true} tileSize={tileSize} />}
         </div>
       </div>
     </div>

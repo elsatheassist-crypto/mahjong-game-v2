@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
-import Tile, { TileSize, getResponsiveTileSize } from './components/Tile';
+import Tile, { TileSize, getResponsiveTileSize, getDiscardTileSize } from './components/Tile';
 import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
@@ -41,6 +41,7 @@ function App() {
   const chiOptionSelect = useGameStore((s) => s.chiOptionSelect);
 
   const effectiveTileSize = tileSize === 'auto' ? getResponsiveTileSize() : tileSize;
+  const discardTileSize = getDiscardTileSize(effectiveTileSize);
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -300,7 +301,7 @@ function App() {
               <div className="mt-4 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
                 <div className="flex flex-wrap gap-1 justify-start content-start">
                 {state.discardSequence.map((tile) => (
-                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
+                  <Tile key={tile.id} tile={tile} size={discardTileSize} showLabel={false} />
                 ))}
                 </div>
                 {state.discardSequence.length === 0 && (
@@ -545,7 +546,7 @@ function App() {
             <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
               <div className="flex flex-wrap gap-1 justify-start content-start">
                 {state.discardSequence.map((tile) => (
-                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
+                  <Tile key={tile.id} tile={tile} size={discardTileSize} showLabel={false} />
                 ))}
               </div>
               {state.discardSequence.length === 0 && (
