@@ -21,7 +21,7 @@ import { createLLMAgent } from '../ai/llm/agent';
 import { AIDecision } from '../ai/base';
 import { calculateShanten } from '../ai/helpers';
 import { canWinByClaimingDiscard, checkWin } from '../core/win';
-import { Tile, Suit } from '../core/tile';
+import { Tile, Suit, isSameTile } from '../core/tile';
 import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 import { calculateScoreBreakdown } from '../core/score';
 
@@ -404,27 +404,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const winState = setWinner(newState, newState.currentPlayer, 'zimo');
             set({ state: winState, isAITurn: false });
             return;
-          } else if (meldAction.type === 'angang' || meldAction.type === 'gang') {
-            // Execute gang meld: remove tiles from hand, add meld, draw replacement tile
+          } else if (meldAction.type === 'angang') {
+            // Execute angang (concealed kong): remove 4 tiles from hand, add meld, draw replacement tile
+            // For angang, no existing meld to replace - just add new meld
             let wall = newState.wall;
             const players = [...newState.players];
             const player = players[newState.currentPlayer];
 
-            // Remove the tiles used in the meld from hand
             const tileIdsToRemove = meldAction.tiles.map(t => t.id);
-            let updatedHand = [...player.hand];
-            for (const id of tileIdsToRemove) {
-              const idx = updatedHand.findIndex(t => t.id === id);
-              if (idx !== -1) {
-                updatedHand = [...updatedHand.slice(0, idx), ...updatedHand.slice(idx + 1)];
-              }
-            }
+            let updatedHand = player.hand.filter(t => !tileIdsToRemove.includes(t.id));
 
-            // Add the meld
-            updatedHand = [...updatedHand];
             const updatedMelds = [...player.melds, meldAction.meld];
 
-            // Draw a replacement tile from the wall (補槓)
             const drawResult = drawTile(wall);
             if (drawResult.tile) {
               updatedHand.push(drawResult.tile);
@@ -451,7 +442,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
             };
 
             set({ state: meldState });
-            // After gang meld, AI needs to discard
+            setTimeout(() => get().executeAITurn(), 800);
+            return;
+          } else if (meldAction.type === 'gang' && meldAction.meld.source === 'self') {
+            // Upgrade peng to gang (補槓): replace existing peng with gang
+            // The meldAction.meld.tiles = [...oldPeng.tiles, drawnTile] = 4 tiles
+            // We must remove the old peng AND add the new gang
+            const players = [...newState.players];
+            const player = players[newState.currentPlayer];
+
+            // Find and remove the old peng meld that matches the drawn tile
+            const oldPeng = player.melds.find(
+              m => m.type === 'peng' && isSameTile(m.tiles[0], drawnTile!)
+            );
+            if (!oldPeng) {
+              console.error('[ERROR] Upgrade peng to gang but no matching peng found');
+              return;
+            }
+
+            // Remove the drawn tile from hand (it was already added to hand in draw phase)
+            const updatedHand = player.hand.filter(t => t.id !== drawnTile!.id);
+
+            // Remove old peng meld, add new gang meld
+            const updatedMelds = [
+              ...player.melds.filter(m => m !== oldPeng),
+              meldAction.meld,
+            ];
+
+            // 補槓：補完後要摸牌，但補槓本身就是摸牌後的動作，已經在 hand 裡了
+            // 不需要再補一張，直接進入丢牌階段
+            players[newState.currentPlayer] = {
+              ...player,
+              hand: updatedHand,
+              melds: updatedMelds,
+            };
+
+            const meldState: GameState = {
+              ...newState,
+              players,
+              turnAction: 'discard',
+              lastAction: 'gang',
+              lastMeldAction: {
+                type: 'gang',
+                player: newState.currentPlayer,
+                tile: drawnTile!,
+              },
+            };
+
+            set({ state: meldState });
             setTimeout(() => get().executeAITurn(), 800);
             return;
           }
