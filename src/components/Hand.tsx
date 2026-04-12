@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Tile as TileType, compareTiles } from '../core/tile';
-import Tile from './Tile';
+import Tile, { TileSize } from './Tile';
 
 interface HandProps {
   tiles: TileType[];
@@ -12,6 +12,7 @@ interface HandProps {
   faceDown?: boolean;
   maxVisible?: number;
   onDragStart?: (tile: TileType, e: React.MouseEvent) => void;
+  size?: TileSize;
 }
 
 const Hand: React.FC<HandProps> = ({
@@ -24,6 +25,7 @@ const Hand: React.FC<HandProps> = ({
   faceDown = false,
   maxVisible,
   onDragStart,
+  size = 'md',
 }) => {
   const [dragState, setDragState] = useState<{
     tile: TileType | null;
@@ -176,9 +178,9 @@ const Hand: React.FC<HandProps> = ({
         >
           <Tile
             tile={tile}
-            size="md"
+            size={size}
             selected={selectedTileId === tile.id && !dragState.isDragging}
-            onClick={() => {}} // Handled by mouse events
+            onClick={() => {}}
           />
         </div>
       ))}

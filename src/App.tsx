@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useGameStore } from './stores/gameStore';
 import { GamePhase } from './core/game';
-import Tile from './components/Tile';
+import Tile, { TileSize, getResponsiveTileSize } from './components/Tile';
 import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
@@ -16,6 +16,7 @@ function App() {
     aiMode,
     llmConfig,
     hybridConfig,
+    tileSize,
     startNewGame,
     drawTile,
     selectTile,
@@ -31,12 +32,15 @@ function App() {
     setAIMode,
     setLLMConfig,
     setHybridConfig,
+    setTileSize,
   } = useGameStore();
 
   const selectedTileId = useGameStore((s) => s.selectedTileId);
   const lastDrawnTileId = useGameStore((s) => s.lastDrawnTileId);
   const isAITurn = useGameStore((s) => s.isAITurn);
   const chiOptionSelect = useGameStore((s) => s.chiOptionSelect);
+
+  const effectiveTileSize = tileSize === 'auto' ? getResponsiveTileSize() : tileSize;
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -210,6 +214,8 @@ function App() {
                 onLLMConfigChange={setLLMConfig}
                 hybridConfig={hybridConfig}
                 onHybridConfigChange={setHybridConfig}
+                tileSize={tileSize}
+                onTileSizeChange={setTileSize}
               />
               <button
                 onClick={() => setShowSettings(false)}
@@ -250,7 +256,7 @@ function App() {
               </div>
               <div className="flex gap-0.5 justify-center flex-wrap">
                 {state.players[2].hand.map((tile) => (
-                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
               {state.players[2].melds.length > 0 && (
@@ -270,7 +276,7 @@ function App() {
               </div>
               <div className="flex flex-col gap-0.5">
                 {state.players[3].hand.map((tile) => (
-                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
               {state.players[3].melds.length > 0 && (
@@ -293,14 +299,9 @@ function App() {
 
               <div className="mt-4 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
                 <div className="flex flex-wrap gap-1 justify-start content-start">
-                  {state.discardSequence.map((tile) => (
-                    <Tile
-                      key={tile.id}
-                      tile={tile}
-                      size="sm"
-                      showLabel={false}
-                    />
-                  ))}
+                {state.discardSequence.map((tile) => (
+                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
+                ))}
                 </div>
                 {state.discardSequence.length === 0 && (
                   <div className="text-white/30 text-xs text-center py-4">尚無捨牌</div>
@@ -322,7 +323,7 @@ function App() {
               </div>
               <div className="flex flex-col gap-0.5">
                 {state.players[1].hand.map((tile) => (
-                  <Tile key={tile.id} tile={tile} size="sm" showLabel={false} />
+                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
               {state.players[1].melds.length > 0 && (
@@ -355,7 +356,7 @@ function App() {
                     <Tile
                       key={tile.id}
                       tile={tile}
-                      size="md"
+                      size={effectiveTileSize}
                       showLabel={false}
                     />
                   ))}
@@ -543,13 +544,8 @@ function App() {
 
             <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
               <div className="flex flex-wrap gap-1 justify-start content-start">
-                {state.discardSequence.map((tile, index) => (
-                  <Tile
-                    key={tile.id}
-                    tile={tile}
-                    size="sm"
-                    showLabel={false}
-                  />
+                {state.discardSequence.map((tile) => (
+                  <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
               {state.discardSequence.length === 0 && (
@@ -600,7 +596,7 @@ function App() {
                   <Tile
                     key={tile.id}
                     tile={tile}
-                    size="md"
+                    size={effectiveTileSize}
                     selected={selectedTileId === tile.id}
                     highlighted={lastDrawnTileId === tile.id}
                     onClick={() => handleTileClick(tile)}
@@ -730,6 +726,8 @@ function App() {
               onLLMConfigChange={setLLMConfig}
               hybridConfig={hybridConfig}
               onHybridConfigChange={setHybridConfig}
+              tileSize={tileSize}
+              onTileSizeChange={setTileSize}
             />
             <button
               onClick={() => setShowSettings(false)}
