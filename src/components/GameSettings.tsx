@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { callLLM } from '../ai/llm/providers';
 import { LLMConfig } from '../ai/llm/index';
-import { HybridConfig } from '../stores/gameStore';
+import { HybridConfig, TileSize } from '../stores/gameStore';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -21,6 +21,8 @@ interface GameSettingsProps {
   onLLMConfigChange: (c: LLMConfigData | null) => void;
   hybridConfig: HybridConfig;
   onHybridConfigChange: (c: Partial<HybridConfig>) => void;
+  tileSize: TileSize;
+  onTileSizeChange: (s: TileSize) => void;
 }
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'error';
@@ -34,6 +36,8 @@ const GameSettings: React.FC<GameSettingsProps> = ({
   onLLMConfigChange,
   hybridConfig,
   onHybridConfigChange,
+  tileSize,
+  onTileSizeChange,
 }) => {
   const [apiKey, setApiKey] = useState(llmConfig?.apiKey || '');
   const [model, setModel] = useState(llmConfig?.model || '');
@@ -51,6 +55,15 @@ const GameSettings: React.FC<GameSettingsProps> = ({
     { value: 'algorithm', label: '演算法', desc: '本地計算，快速免費' },
     { value: 'llm', label: 'LLM AI', desc: '使用 LLM 模型決策' },
     { value: 'hybrid', label: '混合模式', desc: '演算法 + LLM 混合' },
+  ];
+
+  const tileSizes: { value: TileSize; label: string; desc: string }[] = [
+    { value: 'auto', label: '自動', desc: '根據裝置自動調整' },
+    { value: 'xs', label: '超小', desc: 'iPhone SE/Mini' },
+    { value: 'sm', label: '小', desc: 'iPhone' },
+    { value: 'md', label: '中', desc: 'iPhone Plus/iPad Mini' },
+    { value: 'lg', label: '大', desc: 'iPad' },
+    { value: 'xl', label: '超大', desc: 'iPad Pro/桌機' },
   ];
 
   const models: Record<string, { label: string; defaultModel: string }> = {
@@ -189,6 +202,32 @@ const GameSettings: React.FC<GameSettingsProps> = ({
             >
               <div className="text-sm font-medium">{d.label}</div>
               <div className="text-xs text-gray-500">{d.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tile Size */}
+      <div className="border-t pt-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          麻將大小
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {tileSizes.map((size) => (
+            <button
+              key={size.value}
+              onClick={() => onTileSizeChange(size.value)}
+              className={`
+                py-2 px-2 rounded-lg text-center
+                transition-colors
+                ${tileSize === size.value
+                  ? 'bg-amber-100 border-2 border-amber-500'
+                  : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                }
+              `}
+            >
+              <div className="text-sm font-medium">{size.label}</div>
+              <div className="text-xs text-gray-500">{size.desc}</div>
             </button>
           ))}
         </div>
