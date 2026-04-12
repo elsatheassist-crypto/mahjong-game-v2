@@ -31,6 +31,8 @@ export class HardAI implements AIAgent {
     let bestTile = hand[0];
     let bestScore = -Infinity;
 
+    const debugChoices: { tileId: string; shanten: number; improvements: number; danger: number; tileValue: number; score: number }[] = [];
+
     for (let i = 0; i < hand.length; i++) {
       const testHand = hand.filter((_, idx) => idx !== i);
       const newShanten = calculateShanten(testHand);
@@ -47,11 +49,15 @@ export class HardAI implements AIAgent {
       const tileValue = this.evaluateTileValue(hand[i], hand);
       score -= tileValue * 0.5;
 
+      debugChoices.push({ tileId: hand[i].id, shanten: newShanten, improvements, danger, tileValue, score });
+
       if (score > bestScore) {
         bestScore = score;
         bestTile = hand[i];
       }
     }
+
+    console.log(`[DEBUG decideDiscard HARD #${playerIndex}] bestTile=${bestTile.id} score=${bestScore.toFixed(2)} defend=${shouldDefend} shanten=${shanten} hand=${hand.length} options=${debugChoices.length}`, debugChoices.map(c => `${c.tileId}(s=${c.shanten},i=${c.improvements},d=${c.danger},v=${c.tileValue},score=${c.score.toFixed(2)})`).join(' | '));
 
     return bestTile;
   }

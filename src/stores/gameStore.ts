@@ -19,6 +19,7 @@ import { drawTile } from '../core/wall';
 import { createAI } from '../ai';
 import { createLLMAgent } from '../ai/llm/agent';
 import { AIDecision } from '../ai/base';
+import { calculateShanten } from '../ai/helpers';
 import { canWinByClaimingDiscard, checkWin } from '../core/win';
 import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 import { calculateScoreBreakdown } from '../core/score';
@@ -470,6 +471,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const tileToDiscard = await ai.decideDiscard(aiPlayer, state);
           if (tileToDiscard) {
             const newState = aiDiscardTile(state, tileToDiscard);
+            // DEBUG: log discard decision result
+            const aiPlayerIdx = state.currentPlayer;
+            const afterHand = newState.players[aiPlayerIdx].hand;
+            console.log(`[DEBUG discardResult #${aiPlayerIdx}] discarded=${tileToDiscard.id} beforeSize=${aiPlayer.hand.length} afterSize=${afterHand.length} shanten=${calculateShanten(afterHand)} hand=${afterHand.map(t => `${t.suit[0]}${t.value}`).join(' ')}`);
             set({ state: newState });
 
             if (newState.phase === GamePhase.PLAYING) {
