@@ -21,6 +21,7 @@ import { createLLMAgent } from '../ai/llm/agent';
 import { AIDecision } from '../ai/base';
 import { calculateShanten } from '../ai/helpers';
 import { canWinByClaimingDiscard, checkWin } from '../core/win';
+import { Tile, Suit } from '../core/tile';
 import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 import { calculateScoreBreakdown } from '../core/score';
 
@@ -352,8 +353,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const aiMelds = aiPlayer.melds.length;
       const aiHandSize = aiPlayer.hand.length;
       const aiMeldTiles = aiPlayer.melds.reduce((s, m) => s + m.tiles.length, 0);
+      const tileStr = (t: Tile) => `${t.suit[0]}${t.value}`;
       console.log(`[DEBUG AI #${newState.currentPlayer}] drawn=${drawnTile?.id} handSize=${aiHandSize} melds=${aiMelds}(${aiMeldTiles}tiles) total=${aiHandSize+aiMeldTiles} shanten=${aiShanten}`);
-      console.log(`[DEBUG AI #${newState.currentPlayer} hand]`, aiPlayer.hand.map(t => `${t.suit[0]}${t.value}`).join(' '), '| melds:', aiPlayer.melds.map(m => m.type + ':' + m.tiles.map(t2 => `${t2.suit[0]}${t2.value}`).join('')).join(' '));
+      console.log(`[DEBUG AI #${newState.currentPlayer} hand]`, aiPlayer.hand.map(tileStr).join(' '), '| melds:', aiPlayer.melds.map(m => m.type + ':' + m.tiles.map(tileStr).join('')).join(' '));
 
       // Check for self-drawn win (自摸) before other actions
       const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
@@ -474,7 +476,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             // DEBUG: log discard decision result
             const aiPlayerIdx = state.currentPlayer;
             const afterHand = newState.players[aiPlayerIdx].hand;
-            console.log(`[DEBUG discardResult #${aiPlayerIdx}] discarded=${tileToDiscard.id} beforeSize=${aiPlayer.hand.length} afterSize=${afterHand.length} shanten=${calculateShanten(afterHand)} hand=${afterHand.map(t => `${t.suit[0]}${t.value}`).join(' ')}`);
+            const tileStr = (t: Tile) => `${t.suit[0]}${t.value}`;
+            console.log(`[DEBUG discardResult #${aiPlayerIdx}] discarded=${tileToDiscard.id} beforeSize=${aiPlayer.hand.length} afterSize=${afterHand.length} shanten=${calculateShanten(afterHand)} hand=${afterHand.map(tileStr).join(' ')}`);
             set({ state: newState });
 
             if (newState.phase === GamePhase.PLAYING) {
@@ -648,6 +651,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
           if (meldAction.type === 'hu') {
             newState = setWinner(state, state.currentPlayer, 'dianpao');
+            set({ state: newState, isAITurn: false });
+            return;
           } else if (meldAction.type === 'peng') {
             const handTileIds = meldAction.tiles.map(t => t.id);
             newState = playerPeng(state, state.currentPlayer, handTileIds, meldAction.meld.tiles);
@@ -659,6 +664,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
             newState = playerChi(state, state.currentPlayer, handTileIds, meldAction.meld.tiles);
           } else {
             newState = skipAction(state);
+          }
+
+          // Bug fix: check for win after forming meld from discard (peng/chi/gang).
+          // This handles the case where forming a meld completes a winning hand.
+          if (meldAction.type === 'peng' || meldAction.type === 'gang' || meldAction.type === 'chi') {
+            const afterMeldPlayer = newState.players[newState.currentPlayer];
+            const winResult = checkWin(afterMeldPlayer.hand, afterMeldPlayer.melds);
+            if (winResult.isWin) {
+              const winState = setWinner(newState, newState.currentPlayer, 'zimo');
+              set({ state: winState, isAITurn: false });
+              return;
+            }
           }
 
           set({ state: newState });
