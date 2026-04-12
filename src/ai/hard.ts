@@ -228,7 +228,9 @@ export class HardAI implements AIAgent {
           t => t.id !== tile.id && t.suit === suit && Math.abs(t.value - val) <= 2
         );
         if (!hasAdjacent && count === 1) {
-          value -= 2;  // 比 mid-tile 孤張多罰 1
+          // shanten=0 已聽牌不換，shanten=1 小罰，shanten>1 盡快換
+          const isoPenalty = shanten === 1 ? 1 : shanten > 1 ? 2 : 0;
+          value -= isoPenalty;
         }
       }
     }
@@ -239,9 +241,10 @@ export class HardAI implements AIAgent {
       value += 1;
     }
 
+    // 孤張字牌：無法成順子（只能碰/槓），應比照 1/9 孤張處理
     if ((tile.suit === Suit.JIAN || tile.suit === Suit.FENG) && count === 1) {
-      const isolationPenalty = Math.max(0, shanten - 2) * 1.5;
-      value -= isolationPenalty;
+      const isoPenalty = shanten === 1 ? 1 : shanten > 1 ? 2 : 0;
+      value -= isoPenalty;
     }
 
     return value;
