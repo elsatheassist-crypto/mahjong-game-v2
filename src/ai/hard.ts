@@ -41,13 +41,15 @@ export class HardAI implements AIAgent {
 
       let score: number;
       if (shouldDefend) {
-        score = -danger * 3 + (shanten - newShanten) * 2 + improvements * 0.3;
+        score = -danger * 3 + (shanten - newShanten) * 100 + improvements * 0.3;
       } else {
-        score = (shanten - newShanten) * 5 + improvements - danger * 0.3;
+        // 向聽數變化是壓倒性優先級（×100），improvements 只是同向聽數時的次要參考
+        score = (shanten - newShanten) * 100 + improvements * 0.5 - danger * 0.1;
       }
 
       const tileValue = this.evaluateTileValue(hand[i], hand);
-      score -= tileValue * 0.5;
+      // tileValue 只在同向聽數時做微調
+      score -= tileValue * 0.1;
 
       debugChoices.push({ tileId: hand[i].id, shanten: newShanten, improvements, danger, tileValue, score });
 
