@@ -222,10 +222,14 @@ export class HardAI implements AIAgent {
       );
       if (hasNear) value += 1;
 
-      if ((val === 1 || val === 9) && !hand.some(
-        t => t.id !== tile.id && t.suit === suit && Math.abs(t.value - val) === 1
-      )) {
-        value -= 1;
+      // 1/9 孤張：進張面窄（只有 4 張 vs mid-tile 的 8 張），應更積極淘汰
+      if (val === 1 || val === 9) {
+        const hasAdjacent = hand.some(
+          t => t.id !== tile.id && t.suit === suit && Math.abs(t.value - val) <= 2
+        );
+        if (!hasAdjacent && count === 1) {
+          value -= 2;  // 比 mid-tile 孤張多罰 1
+        }
       }
     }
 
