@@ -6,7 +6,7 @@ import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import GameSettings from './components/GameSettings';
 import { Tile as TileType, TILE_DISPLAY, Suit } from './core/tile';
-import { canChi, canPeng, getChiOptions, getPengOption } from './core/meld';
+import { canChi, canPeng, canGang, getChiOptions, getPengOption, getGangOption } from './core/meld';
 import { canWinByClaimingDiscard, checkWin } from './core/win';
 
 function App() {
@@ -24,6 +24,7 @@ function App() {
     chiAction,
     chiActionWithOption,
     pengAction,
+    gangAction,
     winAction,
     confirmReveal,
     setDifficulty,
@@ -73,14 +74,19 @@ function App() {
     const canPengResult = canPeng(humanPlayer, state.lastDiscard);
     const pengOption = canPengResult ? getPengOption(humanPlayer, state.lastDiscard) : null;
 
+    const canGangResult = canGang(humanPlayer, state.lastDiscard);
+    const gangOption = canGangResult ? getGangOption(humanPlayer, state.lastDiscard) : null;
+
     const canWinResult = canWinByClaimingDiscard(humanPlayer.hand, humanPlayer.melds, state.lastDiscard);
 
     return {
       canChi: canChiResult,
       canPeng: canPengResult,
+      canGang: canGangResult,
       canWin: canWinResult,
       chiOptions,
       pengOption,
+      gangOption,
     };
   }, [state.phase, state.lastDiscard, state.lastDiscardPlayer, humanPlayer, humanIndex]);
 
@@ -108,10 +114,10 @@ function App() {
   useEffect(() => {
     if (!isHumanWaitingPhase) return;
     if (!state.lastDiscard) return;
-    if (canChiPeng.canWin || canChiPeng.canPeng || canChiPeng.canChi) return;
+    if (canChiPeng.canWin || canChiPeng.canPeng || canChiPeng.canGang || canChiPeng.canChi) return;
     const timer = setTimeout(() => passAction(), 500);
     return () => clearTimeout(timer);
-  }, [isHumanWaitingPhase, state.lastDiscard, canChiPeng.canWin, canChiPeng.canPeng, canChiPeng.canChi, passAction]);
+  }, [isHumanWaitingPhase, state.lastDiscard, canChiPeng.canWin, canChiPeng.canPeng, canChiPeng.canGang, canChiPeng.canChi, passAction]);
 
   // ========== CALLBACKS ==========
   const handleTileClick = useCallback((tile: TileType) => {
@@ -149,6 +155,10 @@ function App() {
   const handlePeng = useCallback(() => {
     pengAction();
   }, [pengAction]);
+
+  const handleGang = useCallback(() => {
+    gangAction();
+  }, [gangAction]);
 
   const handleHu = useCallback(() => {
     winAction();
@@ -407,6 +417,7 @@ function App() {
     }
     if (isHumanWaitingPhase) {
       if (canChiPeng.canWin) return '🎊 可以胡牌！';
+      if (canChiPeng.canGang) return '👤 可以槓';
       if (canChiPeng.canPeng) return '👤 可以碰';
       if (canChiPeng.canChi) return '👤 可以吃';
     }
@@ -648,6 +659,14 @@ function App() {
                     胡牌
                   </button>
                 )}
+                {canChiPeng.canGang && (
+                  <button
+                    onClick={handleGang}
+                    className="px-6 py-2 rounded-lg font-bold text-white bg-purple-500 hover:bg-purple-600 cursor-pointer"
+                  >
+                    槓
+                  </button>
+                )}
                 {canChiPeng.canPeng && (
                   <button
                     onClick={handlePeng}
@@ -664,7 +683,7 @@ function App() {
                     吃
                   </button>
                 )}
-                {(canChiPeng.canWin || canChiPeng.canPeng || canChiPeng.canChi) && (
+                {(canChiPeng.canWin || canChiPeng.canGang || canChiPeng.canPeng || canChiPeng.canChi) && (
                   <button
                     onClick={handlePass}
                     disabled={isAITurn}

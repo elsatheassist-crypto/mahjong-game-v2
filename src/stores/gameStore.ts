@@ -22,7 +22,7 @@ import { AIDecision } from '../ai/base';
 import { calculateShanten } from '../ai/helpers';
 import { canWinByClaimingDiscard, checkWin } from '../core/win';
 import { Tile, Suit, isSameTile } from '../core/tile';
-import { getChiOptions, getPengOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
+import { getChiOptions, getPengOption, getGangOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 import { calculateScoreBreakdown } from '../core/score';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
@@ -67,6 +67,7 @@ interface GameStore {
   chiAction: () => void;
   chiActionWithOption: (option: MeldAction) => void;
   pengAction: () => void;
+  gangAction: () => void;
   winAction: () => void;
   confirmReveal: () => void;
   executeAITurn: () => Promise<void>;
@@ -279,6 +280,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const handTileIds = pengOption.tiles.map(t => t.id);
     const newState = playerPeng(state, 0, handTileIds, pengOption.meld.tiles);
+
+    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+  },
+
+  gangAction: () => {
+    const { state } = get();
+    if (state.phase !== GamePhase.PLAYING) return;
+    if (state.turnAction !== 'waiting') return;
+    if (!state.lastDiscard || state.lastDiscardPlayer === null) return;
+
+    const humanPlayer = state.players[0];
+    const gangOption = getGangOption(humanPlayer, state.lastDiscard);
+
+    if (!gangOption) return;
+
+    const handTileIds = gangOption.tiles.map((t: Tile) => t.id);
+    const newState = playerGang(state, 0, handTileIds, gangOption.meld.tiles);
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
   },
