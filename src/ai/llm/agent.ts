@@ -2,7 +2,8 @@ import { Tile, getTileDisplay } from '../../core/tile';
 import { Player } from '../../core/player';
 import { GameState } from '../../core/game';
 import { MeldAction } from '../../core/meld';
-import { AIConfig, AIDecision, createAIConfig } from '../base';
+import { AIConfig, AIDecision, createAIConfig, AIDifficulty } from '../base';
+import { createAI } from '../index';
 import { LLMConfig, buildLLMPrompt, parseLLMResponse, buildSelfDrawnPrompt, parseSelfDrawnResponse, buildMeldPrompt, parseMeldResponse } from './index';
 import { callLLM } from './providers';
 
@@ -18,9 +19,10 @@ export interface LLMAIAgent {
 
 export function createLLMAgent(
   llmConfig: LLMConfig,
-  difficulty: 'easy' | 'normal' | 'hard' = 'normal'
+  difficulty: AIDifficulty = 'normal'
 ): LLMAIAgent {
   const config = createAIConfig(difficulty);
+  const fallbackAI = createAI(difficulty);
 
   async function decide(player: Player, gameState: GameState): Promise<Tile> {
     const prompt = buildLLMPrompt(player, gameState);
@@ -48,11 +50,11 @@ export function createLLMAgent(
         console.warn('[LLM Agent] Tile not found in hand:', tileName);
       }
 
-      console.warn('LLM response parsing failed, using fallback');
-      return player.hand[0];
+      console.warn('LLM failed, using fallback AI');
+      return fallbackAI.decideDiscard(player, gameState);
     } catch (error) {
       console.error('LLM AI error:', error);
-      return player.hand[0];
+      return fallbackAI.decideDiscard(player, gameState);
     }
   }
 
@@ -80,11 +82,11 @@ export function createLLMAgent(
         }
       }
 
-      console.warn('LLM meld response parsing failed, using fallback');
-      return { action: 'pass' };
+      console.warn('LLM meld failed, using fallback AI');
+      return fallbackAI.decideMeld(player, availableActions, gameState);
     } catch (error) {
       console.error('LLM AI meld error:', error);
-      return { action: 'pass' };
+      return fallbackAI.decideMeld(player, availableActions, gameState);
     }
   }
 
@@ -118,11 +120,11 @@ export function createLLMAgent(
         }
       }
 
-      console.warn('LLM self-drawn response parsing failed, using fallback');
-      return { action: 'pass' };
+      console.warn('LLM self-drawn failed, using fallback AI');
+      return fallbackAI.decideSelfDrawn(player, availableActions, gameState);
     } catch (error) {
       console.error('LLM AI self-drawn error:', error);
-      return { action: 'pass' };
+      return fallbackAI.decideSelfDrawn(player, availableActions, gameState);
     }
   }
 
