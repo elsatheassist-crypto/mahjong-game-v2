@@ -50,8 +50,12 @@ export async function callLLM(
      endpoint = baseUrl || `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent`;
      headers['x-goog-api-key'] = apiKey;
      body = {
+       systemInstruction: {
+         parts: [{ text: "You are a helpful assistant. Always respond with valid JSON only, no markdown, no explanations." }]
+       },
        contents: [
          {
+           role: "user",
            parts: [{ text: prompt }],
          },
        ],
