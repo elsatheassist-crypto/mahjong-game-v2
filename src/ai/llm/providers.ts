@@ -73,12 +73,21 @@ export async function callLLM(
     }
 
     const data = await response.json();
+    
+    // Debug: Log full API response structure
+    console.log(`[LLM Debug] ${provider} raw response:`, JSON.stringify(data, null, 2).slice(0, 1000));
 
     let content = '';
     if (provider === 'minimax' || provider === 'openrouter') {
       content = data.choices?.[0]?.message?.content || '';
+      if (!content) {
+        console.warn(`[LLM Debug] ${provider} empty content. choices:`, data.choices);
+      }
     } else if (provider === 'gemini') {
       content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!content) {
+        console.warn(`[LLM Debug] ${provider} empty content. candidates:`, data.candidates);
+      }
     }
 
     return {
