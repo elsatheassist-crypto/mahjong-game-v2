@@ -76,23 +76,27 @@ export function parseLLMResponse(response: string): string | null {
   try {
     // Strip markdown code blocks if present
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
+    console.log('[LLM Parse] Cleaned response:', cleaned);
     const parsed = JSON.parse(cleaned);
+    console.log('[LLM Parse] Parsed JSON:', parsed);
     if (parsed.tile_name && typeof parsed.tile_name === 'string') {
+      console.log('[LLM Parse] Found tile_name:', parsed.tile_name);
       return parsed.tile_name;
     }
+    console.warn('[LLM Parse] tile_name field missing or wrong type. Parsed:', parsed);
   } catch (e) {
-    // Log the failed response for debugging
-    console.warn('LLM discard JSON parsing failed. Raw response:', response);
+    console.warn('[LLM Parse] JSON parse error:', e);
+    console.warn('[LLM Parse] Raw response:', response);
   }
 
   // Regex fallback for backward compatibility
   const match = response.match(/選擇的牌[：:]\s*(.+)/);
   if (match) {
-    console.log('LLM discard parsed via regex fallback:', match[1].trim());
+    console.log('[LLM Parse] Regex fallback found:', match[1].trim());
     return match[1].trim();
   }
 
-  console.warn('LLM discard parsing failed completely. Response:', response);
+  console.warn('[LLM Parse] All parsing failed. Response:', response);
   return null;
 }
 
