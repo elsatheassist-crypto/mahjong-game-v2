@@ -79,7 +79,19 @@ export async function callLLM(
 
     let content = '';
     if (provider === 'minimax' || provider === 'openrouter') {
-      content = data.choices?.[0]?.message?.content || '';
+      const message = data.choices?.[0]?.message;
+      content = message?.content || '';
+      // Some models (like nvidia/nemotron) output reasoning but no content
+      // Try to extract JSON from reasoning field if content is empty
+      if (!content && message?.reasoning) {
+        const reasoning = message.reasoning;
+        // Look for JSON pattern in reasoning
+        const jsonMatch = reasoning.match(/\{[^{}]*\}/);
+        if (jsonMatch) {
+          content = jsonMatch[0];
+          console.log(`[LLM Debug] Extracted JSON from reasoning: ${content}`);
+        }
+      }
       if (!content) {
         console.warn(`[LLM Debug] ${provider} empty content. choices:`, data.choices);
       }
