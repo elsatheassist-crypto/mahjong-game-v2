@@ -67,7 +67,14 @@ ${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
 格式如下（只需要這個JSON）：
 {"tile_name":"選擇的牌名"}
 
-例如：{"tile_name":"三萬"}
+正確範例：
+- 手牌：一萬 二萬 三萬 五索 五索 東 東 → 輸出：{"tile_name":"東"}
+- 手牌：二筒 四筒 六筒 八筒 八筒 → 輸出：{"tile_name":"四筒"}
+
+錯誤範例（絕對不要這樣）：
+- 不要輸出思考過程
+- 不要輸出markdown格式
+- 不要選擇不在手牌中的牌
 `;
 
   return prompt;
@@ -203,7 +210,14 @@ ${actionChoices || '無'}
 格式如下（只需要這個JSON）：
 {"action_index":1}
 
-例如：{"action_index":1}
+正確範例：
+- 選項1:胡牌, 選項2:暗槓 → 輸出：{"action_index":1}
+- 選項1:pass → 輸出：{"action_index":1}
+
+錯誤範例（絕對不要這樣）：
+- 不要輸出思考過程
+- 不要輸出markdown格式
+- 不要選擇不存在的編號
 `;
 
   return prompt;
@@ -347,7 +361,14 @@ ${passOptionNum}. pass：放棄
 格式如下（只需要這個JSON）：
 {"action_index":1}
 
-例如：{"action_index":1}
+正確範例：
+- 選項1:吃 二萬三萬四萬, 選項2:pass → 輸出：{"action_index":1}
+- 選項1:碰 五索, 選項2:pass → 輸出：{"action_index":2}
+
+錯誤範例（絕對不要這樣）：
+- 不要輸出思考過程
+- 不要輸出markdown格式
+- 不要選擇不存在的編號
 `;
 
   return prompt;
