@@ -37,10 +37,14 @@ export async function callLLM(
      headers['x-title'] = 'Taiwan Mahjong AI';
      body = {
        model: model || 'google/gemini-2.0-flash-exp',
-       messages: [{ role: 'user', content: prompt }],
+       messages: [
+         { role: 'system', content: '/no_think' },
+         { role: 'user', content: prompt }
+       ],
        temperature,
        max_tokens: 500,
        response_format: { type: "json_object" },
+       reasoning: { enabled: false },
      };
    } else if (provider === 'gemini') {
      endpoint = baseUrl || `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent`;
