@@ -30,45 +30,13 @@ export function buildLLMPrompt(
 
   const myHandDisplay = myHandSorted.map(getTileDisplay).join(' ');
 
-  let prompt = `你是專業的台灣16張麻將玩家。
+  let prompt = `你的麻將牌：${myHandDisplay}
 
-【你的資訊】
-- 你的位置：${player.id}
-- 你的麻將牌：${myHandDisplay}
-- 總共 ${player.hand.length} 張
+請選擇一張牌打出。只能從上面列出的牌中選擇。
 
-【其他玩家的捨牌】
-${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
+回覆格式：{"tile_name":"牌名"}
 
-【牌牆】
-牌牆剩餘：${gameState.wall.tiles.length - gameState.wall.position} 張
-
-【遊戲狀態】
-目前輪到：玩家 ${gameState.currentPlayer}
-`;
-
-  // Add waiting tiles info if available
-  if (player.melds.length > 0) {
-    const myMelds = player.melds.map((m) => m.tiles.map(getTileDisplay).join('')).join(' ');
-    prompt += `\n你的吃碰槓組：${myMelds}`;
-  }
-
-   prompt += `
-【任務】
-請從你的麻將牌中選擇一張要打出去的牌。
-你只能選擇上面【你的麻將牌】列表中顯示的牌。
-
-規則：
-1. 優先打沒有連續性的孤張牌
-2. 避免打可能讓別人胡的危險牌
-3. 如果是字牌（東南西北中發白）且沒有對子，通常先打
-
-重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
-格式如下（只需要這個JSON）：
-{"tile_name":"選擇的牌名"}
-
-例如：{"tile_name":"三萬"}
-`;
+例如：{"tile_name":"三萬"}`;
 
   return prompt;
 }
@@ -160,51 +128,16 @@ export function buildSelfDrawnPrompt(
     return `${index + 1}. ${actionName}：${description}`;
   }).join('\n');
 
-  let prompt = `你是專業的台灣16張麻將玩家。
+  let prompt = `摸到：${drawnTileDisplay}
 
-【你的資訊】
-- 你的位置：${player.id}
-- 你的麻將牌：${myHandDisplay}
-- 總共 ${player.hand.length} 張
+你的牌：${myHandDisplay}
 
-【摸到的牌】
-${drawnTileDisplay}
-
-【其他玩家的捨牌】
-${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
-
-【牌牆】
-牌牆剩餘：${gameState.wall.tiles.length - gameState.wall.position} 張
-
-【遊戲狀態】
-目前輪到：玩家 ${gameState.currentPlayer}
-`;
-
-  // Add existing melds info if available
-  if (player.melds.length > 0) {
-    const myMelds = player.melds.map((m) => m.tiles.map(getTileDisplay).join('')).join(' ');
-    prompt += `\n你的吃碰槓組：${myMelds}`;
-  }
-
-  // Add available self-drawn actions
-  prompt += `
-【可執行的動作】
+可選動作：
 ${actionChoices || '無'}
 
-【任務】
-請選擇要執行的動作（暗槓、加槓、胡牌）或放棄。
-規則：
-1. 如果可以胡牌，原則上應該胡牌
-2. 暗槓會讓手牌減少一張，但有機會獲得更多台數
-3. 加槓可以將碰轉為槓，增加台數
-4. 如果沒有特別的優勢，可以選擇放棄
+請選擇一個編號（1-${availableActions.length || 1}）：
 
-重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
-格式如下（只需要這個JSON）：
-{"action_index":1}
-
-例如：{"action_index":1}
-`;
+回覆格式：{"action_index":編號}`;
 
   return prompt;
 }
@@ -303,52 +236,17 @@ export function buildMeldPrompt(
     ? gameState.players[gameState.lastDiscardPlayer].id
     : '未知';
 
-  let prompt = `你是專業的台灣16張麻將玩家。
+  let prompt = `對方打出：${discardDisplay}
 
-【你的資訊】
-- 你的位置：${player.id}
-- 你的麻將牌：${myHandDisplay}
-- 總共 ${player.hand.length} 張
+你的牌：${myHandDisplay}
 
-【其他玩家的捨牌】
-${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
-
-【牌牆】
-牌牆剩餘：${gameState.wall.tiles.length - gameState.wall.position} 張
-
-【遊戲狀態】
-目前輪到：玩家 ${gameState.currentPlayer}
-${discardPlayer} 打出：${discardDisplay}
-`;
-
-  // Add existing melds info if available
-  if (player.melds.length > 0) {
-    const myMelds = player.melds.map((m) => m.tiles.map(getTileDisplay).join('')).join(' ');
-    prompt += `\n你的吃碰槓組：${myMelds}`;
-  }
-
-   // Add available meld actions
-   prompt += `
-【可執行的動作】
+可選動作：
 ${actionChoices || '無'}
-${passOptionNum}. pass：放棄
+${passOptionNum}. pass
 
-【任務】
-請從上面的編號選項中選擇一個動作（吃、碰、槓、胡）或放棄。
-只能選擇上面列出的編號（1到${passOptionNum}）。
+請選擇一個編號（1-${passOptionNum}）：
 
-規則：
-1. 如果可以胡牌，原則上應該胡牌
-2. 槓 > 碰 > 吃（優先順序）
-3. 吃只能從上家（左邊的玩家）的捨牌
-4. 如果沒有好的組合，選擇 pass
-
-重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
-格式如下（只需要這個JSON）：
-{"action_index":1}
-
-例如：{"action_index":1}
-`;
+回覆格式：{"action_index":編號}`;
 
   return prompt;
 }
