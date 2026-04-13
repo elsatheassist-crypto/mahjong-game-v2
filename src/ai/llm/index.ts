@@ -1,7 +1,9 @@
-import { Tile, getTileDisplay } from '../../core/tile';
+import { Tile, getTileDisplay, Suit } from '../../core/tile';
 import { Player } from '../../core/player';
 import { GameState } from '../../core/game';
 import { MeldAction } from '../../core/meld';
+import { calculateShanten } from '../helpers';
+import { getTileKey } from '../../utils/tileHelper';
 
 export interface LLMConfig {
   provider: 'minimax' | 'openrouter' | 'gemini';
@@ -17,51 +19,151 @@ export function buildLLMPrompt(
 ): string {
   const playerIndex = gameState.players.findIndex((p) => p.id === player.id);
 
-  // Get all visible information
-  const allDiscards: { player: string; tiles: string }[] = gameState.players.map((p, i) => ({
-    player: i === playerIndex ? '自己' : `玩家${i}`,
-    tiles: p.discards.map(getTileDisplay).join(', ') || '無',
-  }));
-
+  // Sort hand for display
   const myHandSorted = [...player.hand].sort((a, b) => {
     if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
     return a.value - b.value;
   });
-
   const myHandDisplay = myHandSorted.map(getTileDisplay).join(' ');
 
-  let prompt = `你是專業的台灣16張麻將玩家。
+  // Calculate shanten number
+  const shanten = calculateShanten(player.hand);
 
-【你的資訊】
-- 你的位置：${player.id}
-- 你的麻將牌：${myHandDisplay}
-- 總共 ${player.hand.length} 張
+  // Helper to generate all candidate tiles for waiting tile calculation
+  const generateCandidateTiles = (): Tile[] => {
+    const tiles: Tile[] = [];
+    for (const suit of [Suit.WAN, Suit.TIAO, Suit.TONG] as Suit[]) {
+      for (let value = 1; value <= 9; value++) {
+        tiles.push({ id: `cand-${suit}-${value}`, suit, value });
+      }
+    }
+    for (let value = 1; value <= 4; value++) {
+      tiles.push({ id: `cand-feng-${value}`, suit: Suit.FENG, value });
+    }
+    for (let value = 1; value <= 3; value++) {
+      tiles.push({ id: `cand-jian-${value}`, suit: Suit.JIAN, value });
+    }
+    return tiles;
+  };
 
-【其他玩家的捨牌】
-${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
+  // Get waiting tiles for tenpai hand
+  const getWaitingTiles = (hand: Tile[]): string => {
+    const waiting = new Set<string>();
+    for (const tile of generateCandidateTiles()) {
+      const testHand = [...hand, tile];
+      if (calculateShanten(testHand) === 0) {
+        waiting.add(getTileDisplay(tile));
+      }
+    }
+    return Array.from(waiting).join('、');
+  };
 
-【牌牆】
-牌牆剩餘：${gameState.wall.tiles.length - gameState.wall.position} 張
+  // Build own melds display
+  const myMeldsDisplay = player.melds.length > 0
+    ? player.melds.map((m) => {
+        const tiles = m.tiles.map(getTileDisplay).join('');
+        switch (m.type) {
+          case 'chi': return `吃 ${tiles}`;
+          case 'peng': return `碰 ${tiles}`;
+          case 'gang': return `槓 ${tiles}`;
+          case 'angang': return `暗槓`;
+          default: return tiles;
+        }
+      }).join(' | ')
+    : '無';
 
-【遊戲狀態】
-目前輪到：玩家 ${gameState.currentPlayer}
-`;
+  // Build opponent info with melds and analysis
+  const buildOpponentInfo = (p: Player, idx: number): string => {
+    const meldsDisplay = p.melds.length > 0
+      ? p.melds.map((m) => {
+          const tiles = m.tiles.map(getTileDisplay).join('');
+          switch (m.type) {
+            case 'chi': return `吃 ${tiles}`;
+            case 'peng': return `碰 ${tiles}`;
+            case 'gang': return `槓 ${tiles}`;
+            case 'angang': return `暗槓`;
+            default: return tiles;
+          }
+        }).join(' | ')
+      : '無';
 
-  // Add waiting tiles info if available
-  if (player.melds.length > 0) {
-    const myMelds = player.melds.map((m) => m.tiles.map(getTileDisplay).join('')).join(' ');
-    prompt += `\n你的吃碰槓組：${myMelds}`;
-  }
+    const discardsDisplay = p.discards.map(getTileDisplay).join('、') || '無';
 
-   prompt += `
+    // Generate analysis based on melds and discards
+    const analysis: string[] = [];
+
+    // Analyze melds
+    for (const meld of p.melds) {
+      const tileNames = meld.tiles.map(getTileDisplay).join('');
+      switch (meld.type) {
+        case 'peng':
+          analysis.push(`手中有 ${tileNames} 這個刻子`);
+          break;
+        case 'gang':
+          analysis.push(`已槓 ${tileNames}，可能在做大牌`);
+          break;
+        case 'angang':
+          analysis.push(`有暗槓，手牌實力不明`);
+          break;
+        case 'chi':
+          analysis.push(`吃了 ${tileNames}`);
+          break;
+      }
+    }
+
+    // Analyze discards for safety
+    if (p.discards.length > 0) {
+      const uniqueDiscards = [...new Set(p.discards.map(getTileDisplay))];
+      if (uniqueDiscards.length >= 3) {
+        analysis.push(`已丟出的牌較安全：${uniqueDiscards.slice(0, 5).join('、')}`);
+      }
+    }
+
+    const analysisText = analysis.length > 0 ? analysis.join('；') : '暫無明確線索';
+
+    return `【玩家 ${idx} 的已知牌】
+- 吃碰槓組：${meldsDisplay}
+- 捨牌：${discardsDisplay}
+→ 推估：${analysisText}`;
+  };
+
+  // Build all opponents info
+  const opponentsInfo = gameState.players
+    .filter((_, idx) => idx !== playerIndex)
+    .map((p) => {
+      const originalIdx = gameState.players.findIndex(op => op.id === p.id);
+      return buildOpponentInfo(p, originalIdx);
+    })
+    .join('\n\n');
+
+  // Waiting tiles display
+  const waitingTilesDisplay = shanten === 0
+    ? `已聽牌（等待：${getWaitingTiles(player.hand)}）`
+    : `差 ${shanten} 張聽牌`;
+
+  const prompt = `你是專業的台灣16張麻將玩家。
+
+【你的狀態】
+- 向聽數：${shanten}（${waitingTilesDisplay}）
+- 手牌數：${player.hand.length} 張
+
+【你的手牌】${myHandDisplay}
+
+【你的吃碰槓組】${myMeldsDisplay}
+
+${opponentsInfo}
+
+【牌牆】剩餘 ${gameState.wall.tiles.length - gameState.wall.position} 張
+
 【任務】
-請從你的麻將牌中選擇一張要打出去的牌。
-你只能選擇上面【你的麻將牌】列表中顯示的牌。
+請從你的手牌中選擇一張要打出去的牌。
+你只能選擇上面【你的手牌】列表中顯示的牌。
 
 規則：
 1. 優先打沒有連續性的孤張牌
 2. 避免打可能讓別人胡的危險牌
 3. 如果是字牌（東南西北中發白）且沒有對子，通常先打
+4. 參考對手的吃碰槓組和捨牌來判斷安全牌
 
 重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
 格式如下（只需要這個JSON）：
@@ -145,8 +247,7 @@ export function buildSelfDrawnPrompt(
         actionName = '暗槓';
         description = `槓 ${tilesDisplay}（自己摸到的牌）`;
         break;
-      case 'gang':
-        // Check if this is an upgrade from peng
+      case 'gang': {
         const isUpgrade = player.melds.some(
           m => m.type === 'peng' && m.tiles.some(t => getTileDisplay(t) === tilesDisplay.split(' ')[0])
         );
@@ -155,6 +256,7 @@ export function buildSelfDrawnPrompt(
           ? `將碰 ${tilesDisplay} 升級為槓`
           : `槓 ${tilesDisplay}（${drawnTileDisplay}）`;
         break;
+      }
       case 'hu':
         actionName = '胡牌';
         description = '自摸胡牌！';
