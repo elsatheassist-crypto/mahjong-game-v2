@@ -80,16 +80,19 @@ export function parseLLMResponse(response: string): string | null {
     if (parsed.tile_name && typeof parsed.tile_name === 'string') {
       return parsed.tile_name;
     }
-  } catch {
-    // Fallback to regex
+  } catch (e) {
+    // Log the failed response for debugging
+    console.warn('LLM discard JSON parsing failed. Raw response:', response);
   }
 
   // Regex fallback for backward compatibility
   const match = response.match(/選擇的牌[：:]\s*(.+)/);
   if (match) {
+    console.log('LLM discard parsed via regex fallback:', match[1].trim());
     return match[1].trim();
   }
 
+  console.warn('LLM discard parsing failed completely. Response:', response);
   return null;
 }
 
@@ -207,19 +210,23 @@ ${actionChoices || '無'}
 export function parseSelfDrawnResponse(response: string): string | null {
   // Try JSON parsing first
   try {
-    // Strip markdown code blocks if present
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (typeof parsed.action_index === 'number') {
       return parsed.action_index.toString();
     }
   } catch {
-    // Fallback to regex
+    console.warn('LLM self-drawn JSON parsing failed. Raw response:', response);
   }
 
-  // Regex fallback for backward compatibility
   const match = response.match(/選擇的動作[：:]\s*(\d+)/);
-  return match ? match[1] : null;
+  if (match) {
+    console.log('LLM self-drawn parsed via regex fallback:', match[1]);
+    return match[1];
+  }
+
+  console.warn('LLM self-drawn parsing failed. Response:', response);
+  return null;
 }
 
 /**
@@ -339,19 +346,22 @@ ${passOptionNum}. pass：放棄
  * Returns the action index string (1-based) or null if parsing fails
  */
 export function parseMeldResponse(response: string): string | null {
-  // Try JSON parsing first
   try {
-    // Strip markdown code blocks if present
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (typeof parsed.action_index === 'number') {
       return parsed.action_index.toString();
     }
   } catch {
-    // Fallback to regex
+    console.warn('LLM meld JSON parsing failed. Raw response:', response);
   }
 
-  // Regex fallback for backward compatibility
   const match = response.match(/選擇的動作[：:]\s*(\d+)/);
-  return match ? match[1] : null;
+  if (match) {
+    console.log('LLM meld parsed via regex fallback:', match[1]);
+    return match[1];
+  }
+
+  console.warn('LLM meld parsing failed. Response:', response);
+  return null;
 }
