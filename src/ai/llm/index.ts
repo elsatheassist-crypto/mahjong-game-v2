@@ -216,11 +216,15 @@ export function parseSelfDrawnResponse(response: string): string | null {
   try {
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
+    console.log('[LLM SelfDrawn Parse] Parsed JSON:', parsed);
     if (typeof parsed.action_index === 'number') {
+      console.log('[LLM SelfDrawn Parse] Found action_index:', parsed.action_index);
       return parsed.action_index.toString();
     }
-  } catch {
-    console.warn('LLM self-drawn JSON parsing failed. Raw response:', response);
+    console.warn('[LLM SelfDrawn Parse] action_index missing or wrong type. Parsed:', parsed);
+  } catch (e) {
+    console.warn('[LLM SelfDrawn Parse] JSON parse error:', e);
+    console.warn('[LLM SelfDrawn Parse] Raw response:', response);
   }
 
   const match = response.match(/選擇的動作[：:]\s*(\d+)/);
@@ -353,11 +357,15 @@ export function parseMeldResponse(response: string): string | null {
   try {
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
+    console.log('[LLM Meld Parse] Parsed JSON:', parsed);
     if (typeof parsed.action_index === 'number') {
+      console.log('[LLM Meld Parse] Found action_index:', parsed.action_index);
       return parsed.action_index.toString();
     }
-  } catch {
-    console.warn('LLM meld JSON parsing failed. Raw response:', response);
+    console.warn('[LLM Meld Parse] action_index missing or wrong type. Parsed:', parsed);
+  } catch (e) {
+    console.warn('[LLM Meld Parse] JSON parse error:', e);
+    console.warn('[LLM Meld Parse] Raw response:', response);
   }
 
   const match = response.match(/選擇的動作[：:]\s*(\d+)/);
