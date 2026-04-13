@@ -30,14 +30,22 @@ export function createLLMAgent(
       const tileName = parseLLMResponse(response.content);
 
       if (tileName) {
+        const handDisplays = player.hand.map(t => getTileDisplay(t));
+        console.log('[LLM Agent] Looking for tile:', tileName, 'in hand:', handDisplays);
+        
         const tile = player.hand.find((t) => {
           const display = getTileDisplay(t);
-          return display.includes(tileName) || tileName.includes(display);
+          const match = display.includes(tileName) || tileName.includes(display);
+          if (match) {
+            console.log('[LLM Agent] Matched:', display, 'with:', tileName);
+          }
+          return match;
         });
 
         if (tile) {
           return tile;
         }
+        console.warn('[LLM Agent] Tile not found in hand:', tileName);
       }
 
       console.warn('LLM response parsing failed, using fallback');
