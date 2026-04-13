@@ -28,7 +28,7 @@ export async function callLLM(
        model: model || 'MiniMax-M2.7',
        messages: [{ role: 'user', content: prompt }],
        temperature,
-       max_tokens: 300,
+       max_tokens: 500,
      };
    } else if (provider === 'openrouter') {
      endpoint = baseUrl || 'https://openrouter.ai/api/v1/chat/completions';
@@ -39,7 +39,7 @@ export async function callLLM(
        model: model || 'google/gemini-2.0-flash-exp',
        messages: [{ role: 'user', content: prompt }],
        temperature,
-       max_tokens: 300,
+       max_tokens: 500,
        response_format: { type: "json_object" },
      };
    } else if (provider === 'gemini') {
@@ -53,7 +53,7 @@ export async function callLLM(
        ],
        generationConfig: {
          temperature,
-         maxOutputTokens: 300,
+         maxOutputTokens: 500,
          responseMimeType: "application/json",
        },
      };

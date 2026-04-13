@@ -61,11 +61,11 @@ ${allDiscards.map((d) => `- ${d.player}：${d.tiles}`).join('\n')}
 2. 避免打可能讓別人胡的危險牌
 3. 如果是字牌（東南西北中發白）且沒有對子，通常先打
 
-請以JSON格式回覆，格式如下：
-{
-  "reasoning": "你的思考過程（可選）",
-  "tile_name": "選擇的牌名，例如：三萬"
-}
+重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
+格式如下（只需要這個JSON）：
+{"tile_name":"選擇的牌名"}
+
+例如：{"tile_name":"三萬"}
 `;
 
   return prompt;
@@ -193,11 +193,11 @@ ${actionChoices || '無'}
 3. 加槓可以將碰轉為槓，增加台數
 4. 如果沒有特別的優勢，可以選擇放棄
 
-請以JSON格式回覆，格式如下：
-{
-  "reasoning": "你的思考過程（可選）",
-  "action_index": 1
-}
+重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
+格式如下（只需要這個JSON）：
+{"action_index":1}
+
+例如：{"action_index":1}
 `;
 
   return prompt;
@@ -331,11 +331,11 @@ ${passOptionNum}. pass：放棄
 3. 吃只能從上家（左邊的玩家）的捨牌
 4. 如果沒有好的組合，選擇 pass
 
-請以JSON格式回覆，格式如下：
-{
-  "reasoning": "你的思考過程（可選）",
-  "action_index": 1
-}
+重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
+格式如下（只需要這個JSON）：
+{"action_index":1}
+
+例如：{"action_index":1}
 `;
 
   return prompt;
