@@ -2,7 +2,7 @@ import { Tile, getTileDisplay, Suit } from '../../core/tile';
 import { Player } from '../../core/player';
 import { GameState } from '../../core/game';
 import { MeldAction } from '../../core/meld';
-import { calculateShanten } from '../helpers';
+import { calculateShanten, assessDanger } from '../helpers';
 import { getTileKey } from '../../utils/tileHelper';
 
 export interface LLMConfig {
@@ -24,162 +24,72 @@ export function buildLLMPrompt(
     if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
     return a.value - b.value;
   });
-  const myHandDisplay = myHandSorted.map(getTileDisplay).join(' ');
+  const handTiles = myHandSorted.map(getTileDisplay);
 
   // Calculate shanten number
   const shanten = calculateShanten(player.hand);
 
-  // Helper to generate all candidate tiles for waiting tile calculation
-  const generateCandidateTiles = (): Tile[] => {
-    const tiles: Tile[] = [];
-    for (const suit of [Suit.WAN, Suit.TIAO, Suit.TONG] as Suit[]) {
-      for (let value = 1; value <= 9; value++) {
-        tiles.push({ id: `cand-${suit}-${value}`, suit, value });
-      }
+  // Melds format helper
+  const formatMelds = (melds: any[]) => melds.map(m => {
+    const tiles = m.tiles.map(getTileDisplay).join('');
+    return `${m.type === 'chi' ? '吃' : m.type === 'peng' ? '碰' : m.type === 'gang' ? '槓' : '暗槓'} ${tiles}`;
+  });
+
+  // Danger assessment
+  const dangerAssessments = assessDanger(player.hand, gameState, playerIndex);
+  
+  const safe_tiles: string[] = [];
+  const medium_risk_tiles: string[] = [];
+  const high_risk_tiles: string[] = [];
+
+  const seen = new Set<string>();
+
+  dangerAssessments.forEach(da => {
+    const name = getTileDisplay(da.tile);
+    if (seen.has(name)) return;
+    seen.add(name);
+
+    // Provide reasoning if any (e.g. "三元牌")
+    const desc = da.reason ? `${name}(${da.reason})` : name;
+    
+    // Danger <= 1 is generally safe/low risk
+    if (da.danger <= 1) {
+      safe_tiles.push(desc);
+    } else if (da.danger <= 3) {
+      medium_risk_tiles.push(desc);
+    } else {
+      high_risk_tiles.push(desc);
     }
-    for (let value = 1; value <= 4; value++) {
-      tiles.push({ id: `cand-feng-${value}`, suit: Suit.FENG, value });
-    }
-    for (let value = 1; value <= 3; value++) {
-      tiles.push({ id: `cand-jian-${value}`, suit: Suit.JIAN, value });
-    }
-    return tiles;
-  };
+  });
 
-  // Get waiting tiles for tenpai hand
-  const getWaitingTiles = (hand: Tile[]): string => {
-    const waiting = new Set<string>();
-    for (const tile of generateCandidateTiles()) {
-      const testHand = [...hand, tile];
-      if (calculateShanten(testHand) === 0) {
-        waiting.add(getTileDisplay(tile));
-      }
-    }
-    return Array.from(waiting).join('、');
-  };
-
-  // Build own melds display
-  const myMeldsDisplay = player.melds.length > 0
-    ? player.melds.map((m) => {
-        const tiles = m.tiles.map(getTileDisplay).join('');
-        switch (m.type) {
-          case 'chi': return `吃 ${tiles}`;
-          case 'peng': return `碰 ${tiles}`;
-          case 'gang': return `槓 ${tiles}`;
-          case 'angang': return `暗槓`;
-          default: return tiles;
-        }
-      }).join(' | ')
-    : '無';
-
-  // Build opponent info with melds and analysis
-  const buildOpponentInfo = (p: Player, idx: number): string => {
-    const meldsDisplay = p.melds.length > 0
-      ? p.melds.map((m) => {
-          const tiles = m.tiles.map(getTileDisplay).join('');
-          switch (m.type) {
-            case 'chi': return `吃 ${tiles}`;
-            case 'peng': return `碰 ${tiles}`;
-            case 'gang': return `槓 ${tiles}`;
-            case 'angang': return `暗槓`;
-            default: return tiles;
-          }
-        }).join(' | ')
-      : '無';
-
-    const discardsDisplay = p.discards.map(getTileDisplay).join('、') || '無';
-
-    // Generate analysis based on melds and discards
-    const analysis: string[] = [];
-
-    // Analyze melds
-    for (const meld of p.melds) {
-      const tileNames = meld.tiles.map(getTileDisplay).join('');
-      switch (meld.type) {
-        case 'peng':
-          analysis.push(`手中有 ${tileNames} 這個刻子`);
-          break;
-        case 'gang':
-          analysis.push(`已槓 ${tileNames}，可能在做大牌`);
-          break;
-        case 'angang':
-          analysis.push(`有暗槓，手牌實力不明`);
-          break;
-        case 'chi':
-          analysis.push(`吃了 ${tileNames}`);
-          break;
-      }
-    }
-
-    // Analyze discards for safety
-    if (p.discards.length > 0) {
-      const uniqueDiscards = [...new Set(p.discards.map(getTileDisplay))];
-      if (uniqueDiscards.length >= 3) {
-        analysis.push(`已丟出的牌較安全：${uniqueDiscards.slice(0, 5).join('、')}`);
-      }
-    }
-
-    const analysisText = analysis.length > 0 ? analysis.join('；') : '暫無明確線索';
-
-    return `【玩家 ${idx} 的已知牌】
-- 吃碰槓組：${meldsDisplay}
-- 捨牌：${discardsDisplay}
-→ 推估：${analysisText}`;
-  };
-
-  // Build all opponents info
-  const opponentsInfo = gameState.players
+  // Build opponents info
+  const opponents = gameState.players
     .filter((_, idx) => idx !== playerIndex)
-    .map((p) => {
-      const originalIdx = gameState.players.findIndex(op => op.id === p.id);
-      return buildOpponentInfo(p, originalIdx);
-    })
-    .join('\n\n');
+    .map(p => {
+      const uniqueDiscards = Array.from(new Set(p.discards.map(getTileDisplay)));
+      return {
+        melds: formatMelds(p.melds),
+        discards_summary: uniqueDiscards.slice(0, 5) // Just showing the first few discards as relatively safe
+      };
+    });
 
-  // Waiting tiles display
-  const waitingTilesDisplay = shanten === 0
-    ? `已聽牌（等待：${getWaitingTiles(player.hand)}）`
-    : `差 ${shanten} 張聽牌`;
+  const payload = {
+    task: "decide_discard",
+    my_state: {
+      hand: handTiles,
+      shanten,
+      melds: formatMelds(player.melds)
+    },
+    risk_analysis: {
+      safe_tiles,
+      medium_risk_tiles,
+      high_risk_tiles
+    },
+    opponents,
+    system_instruction: "你是一個專業的台灣16張麻將AI。請根據 my_state 與 risk_analysis 決定要打哪一張牌。說明：'shanten' 代表向聽數（距離聽牌還差幾張，0 代表已聽牌，數值越小越接近胡牌）。必須嚴格回傳JSON格式，包含 'reasoning' (你的戰略思考) 與 'tile_name' (決定打出的牌名，必須在hand清單中)。絕對不要輸出JSON以外的文字。"
+  };
 
-  const prompt = `你是專業的台灣16張麻將玩家。
-
-【你的狀態】
-- 向聽數：${shanten}（${waitingTilesDisplay}）
-- 手牌數：${player.hand.length} 張
-
-【你的手牌】${myHandDisplay}
-
-【你的吃碰槓組】${myMeldsDisplay}
-
-${opponentsInfo}
-
-【牌牆】剩餘 ${gameState.wall.tiles.length - gameState.wall.position} 張
-
-【任務】
-請從你的手牌中選擇一張要打出去的牌。
-你只能選擇上面【你的手牌】列表中顯示的牌。
-
-規則：
-1. 優先打沒有連續性的孤張牌
-2. 避免打可能讓別人胡的危險牌
-3. 如果是字牌（東南西北中發白）且沒有對子，通常先打
-4. 參考對手的吃碰槓組和捨牌來判斷安全牌
-
-重要：請直接輸出JSON格式，不要輸出任何其他文字或思考過程。
-格式如下（只需要這個JSON）：
-{"tile_name":"選擇的牌名"}
-
-正確範例：
-- 手牌：一萬 二萬 三萬 五索 五索 東 東 → 輸出：{"tile_name":"東"}
-- 手牌：二筒 四筒 六筒 八筒 八筒 → 輸出：{"tile_name":"四筒"}
-
-錯誤範例（絕對不要這樣）：
-- 不要輸出思考過程
-- 不要輸出markdown格式
-- 不要選擇不在手牌中的牌
-`;
-
-  return prompt;
+  return JSON.stringify(payload, null, 2);
 }
 
 export function parseLLMResponse(response: string): string | null {
