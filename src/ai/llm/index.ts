@@ -86,8 +86,8 @@ export function buildLLMPrompt(
       high_risk_tiles
     },
     opponents,
-    system_instruction: "你是一個專業的台灣16張麻將AI。請根據 my_state 與 risk_analysis 決定要打哪一張牌。說明：'shanten' 代表向聽數（距離聽牌還差幾張，0 代表已聽牌，數值越小越接近胡牌）。必須嚴格回傳JSON格式，包含 'reasoning' (你的戰略思考，最多100個字元，簡短說明) 與 'tile_name' (決定打出的牌名，必須在hand清單中)。絕對不要輸出JSON以外的文字。",
-    _final_instruction: "=== 絕對限制 ===\n1. 只能輸出JSON物件，禁止任何其他文字\n2. tile_name 必須是 my_state.hand 陣列中的其中一個值，原樣複製，不要修改\n3. 禁止在 hand 陣列中加入任何說明文字\n4. 禁止輸出 markdown 格式\n5. reasoning 欄位最多100個字元，簡短說明即可\n6. 正確範例：{\"reasoning\": \"打掉孤張風牌\", \"tile_name\": \"東\"}"
+    system_instruction: "你是一個專業的台灣16張麻將AI。請根據 my_state 與 risk_analysis 決定要打哪一張牌。說明：'shanten' 代表向聽數（距離聽牌還差幾張，0 代表已聽牌，數值越小越接近胡牌）。必須嚴格回傳JSON格式，欄位順序：先 'tile_name' (決定打出的牌名，必須在hand清單中)，再 'reasoning' (你的戰略思考，最多100個字元，簡短說明)。絕對不要輸出JSON以外的文字。",
+    _final_instruction: "=== 絕對限制 ===\n1. 只能輸出JSON物件，禁止任何其他文字\n2. JSON欄位順序必須是：先 tile_name，再 reasoning\n3. tile_name 必須是 my_state.hand 陣列中的其中一個值，原樣複製，不要修改\n4. 禁止在 hand 陣列中加入任何說明文字\n5. 禁止輸出 markdown 格式\n6. reasoning 欄位最多100個字元，簡短說明即可\n7. 正確範例：{\"tile_name\": \"東\", \"reasoning\": \"打掉孤張風牌\"}"
   };
 
   return JSON.stringify(payload, null, 2);
