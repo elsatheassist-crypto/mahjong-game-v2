@@ -87,23 +87,32 @@ export function buildLLMPrompt(
     },
     opponents,
     system_instruction: "你是一個專業的台灣16張麻將AI。請根據 my_state 與 risk_analysis 決定要打哪一張牌。說明：'shanten' 代表向聽數（距離聽牌還差幾張，0 代表已聽牌，數值越小越接近胡牌）。必須嚴格回傳JSON格式，欄位順序：先 'tile_name' (決定打出的牌名，必須在hand清單中)，再 'reasoning' (你的戰略思考，最多100個字元，簡短說明)。絕對不要輸出JSON以外的文字。",
-    _final_instruction: "=== 絕對限制 ===\n1. 只能輸出JSON物件，禁止任何其他文字\n2. JSON欄位順序必須是：先 tile_name，再 reasoning\n3. tile_name 必須是 my_state.hand 陣列中的其中一個值，原樣複製，不要修改\n4. 禁止在 hand 陣列中加入任何說明文字\n5. 禁止輸出 markdown 格式\n6. reasoning 欄位最多100個字元，簡短說明即可\n7. 正確範例：{\"tile_name\": \"東\", \"reasoning\": \"打掉孤張風牌\"}"
+    _final_instruction: "=== 絕對限制 ===\n1. 只能輸出JSON物件，禁止任何其他文字\n2. JSON欄位順序必須是：先 tile_name，再 reasoning\n3. tile_name 必須是 my_state.hand 陣列中的其中一個值，原樣複製，不要修改\n4. 禁止在 hand 陣列中加入任何說明文字\n5. 禁止輸出 markdown 格式\n6. reasoning 欄位最多100個字元，簡短說明即可\n7. 必須使用繁體中文牌名（如：一萬、二索、三筒、東、南、西、北、中、發、白），禁止使用簡體中文（如：一万）\n8. 正確範例：{\"tile_name\": \"東\", \"reasoning\": \"打掉孤張風牌\"}"
   };
 
   return JSON.stringify(payload, null, 2);
 }
 
+function normalizeTileName(tileName: string): string {
+  const simplifiedToTraditional: Record<string, string> = {
+    '万': '萬',
+    '东': '東',
+    '发': '發',
+  };
+  
+  return tileName.split('').map(char => simplifiedToTraditional[char] || char).join('');
+}
+
 export function parseLLMResponse(response: string): string | null {
-  // Try JSON parsing first
   try {
-    // Strip markdown code blocks if present
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     console.log('[LLM Parse] Cleaned response:', cleaned);
     const parsed = JSON.parse(cleaned);
     console.log('[LLM Parse] Parsed JSON:', parsed);
     if (parsed.tile_name && typeof parsed.tile_name === 'string') {
-      console.log('[LLM Parse] Found tile_name:', parsed.tile_name);
-      return parsed.tile_name;
+      const normalizedTileName = normalizeTileName(parsed.tile_name);
+      console.log('[LLM Parse] Found tile_name:', parsed.tile_name, '-> normalized:', normalizedTileName);
+      return normalizedTileName;
     }
     console.warn('[LLM Parse] tile_name field missing or wrong type. Parsed:', parsed);
   } catch (e) {
@@ -111,11 +120,11 @@ export function parseLLMResponse(response: string): string | null {
     console.warn('[LLM Parse] Raw response:', response);
   }
 
-  // Regex fallback for backward compatibility
   const match = response.match(/選擇的牌[：:]\s*(.+)/);
   if (match) {
-    console.log('[LLM Parse] Regex fallback found:', match[1].trim());
-    return match[1].trim();
+    const normalizedTileName = normalizeTileName(match[1].trim());
+    console.log('[LLM Parse] Regex fallback found:', match[1].trim(), '-> normalized:', normalizedTileName);
+    return normalizedTileName;
   }
 
   console.warn('[LLM Parse] All parsing failed. Response:', response);
