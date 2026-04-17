@@ -28,7 +28,7 @@ export async function callLLM(
        model: model || 'MiniMax-M2.7',
        messages: [{ role: 'user', content: prompt }],
        temperature,
-       max_tokens: 500,
+       max_tokens: 1000,
      };
    } else if (provider === 'openrouter') {
      endpoint = baseUrl || 'https://openrouter.ai/api/v1/chat/completions';
@@ -42,7 +42,7 @@ export async function callLLM(
          { role: 'user', content: prompt }
        ],
        temperature,
-       max_tokens: 500,
+       max_tokens: 1000,
        response_format: { type: "json_object" },
        reasoning: { enabled: false },
      };
@@ -59,11 +59,11 @@ export async function callLLM(
            parts: [{ text: prompt }],
          },
        ],
-       generationConfig: {
-         temperature,
-         maxOutputTokens: 500,
-         responseMimeType: "application/json",
-       },
+        generationConfig: {
+          temperature,
+          maxOutputTokens: 1000,
+          responseMimeType: "application/json",
+        },
      };
    }
 
