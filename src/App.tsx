@@ -427,10 +427,10 @@ function App() {
   };
 
   const SEAT_LABELS: Record<number, string> = {
-    0: '南家',
-    1: '東家',
-    2: '北家',
-    3: '西家',
+    0: '東家',
+    1: '南家',
+    2: '西家',
+    3: '北家',
   };
 
   const getTileLabel = (tile: TileType) => {
