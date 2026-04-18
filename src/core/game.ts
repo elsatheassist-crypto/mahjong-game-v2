@@ -23,7 +23,7 @@ export interface GameState {
   lastDiscard: Tile | null;
   lastDiscardPlayer: number | null;
   winner: number | null;
-  winType: 'zimo' | 'dianpao' | null;
+  winType: 'zimo' | 'dianpao' | 'flower' | null;
   round: number;
   turnAction: 'draw' | 'discard' | 'waiting';
   wind: PlayerSeat;
@@ -359,7 +359,7 @@ export function checkWin(state: GameState, playerIndex: number): boolean {
 export function setWinner(
   state: GameState,
   winnerIndex: number,
-  winType?: 'zimo' | 'dianpao'
+  winType?: 'zimo' | 'dianpao' | 'flower'
 ): GameState {
   return {
     ...state,

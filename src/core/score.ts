@@ -69,6 +69,17 @@ export function calculateScoreBreakdown(
     details.push({ name: '全求人', tai: 2, type: 'quanqiuren' });
   }
 
+  // Flower scoring
+  if (specialType === 'flower') {
+    // Count flowers in hand
+    const flowerCount = hand.filter(t => t.suit === 'flower').length;
+    if (flowerCount === 8) {
+      details.push({ name: '八仙過海', tai: 8, type: 'flower' });
+    } else if (flowerCount === 7) {
+      details.push({ name: '七搶一', tai: 4, type: 'flower' });
+    }
+  }
+
   if (specialType === 'zimo') {
     details.push({ name: '自摸', tai: 1, type: 'zimo' });
   }

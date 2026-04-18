@@ -187,7 +187,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // 檢查是否有花牌胡牌（七搶一或八仙過海）
     const flowerWinResult = checkFlowerWin(newState);
     if (flowerWinResult.winner !== null) {
-      newState = setWinner(newState, flowerWinResult.winner, 'zimo');
+      newState = setWinner(newState, flowerWinResult.winner, 'flower');
     }
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false, chiOptionSelect: [] });
@@ -253,7 +253,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // 檢查花牌胡牌（七搶一或八仙過海）
     const flowerWinResult = checkFlowerWin(newState);
     if (flowerWinResult.winner !== null) {
-      newState = setWinner(newState, flowerWinResult.winner, 'zimo');
+      newState = setWinner(newState, flowerWinResult.winner, 'flower');
     }
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile.id });
@@ -414,13 +414,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // AI 摸牌後檢查並補花
       newState = compensateFlowers(newState);
 
-      // 檢查花牌胡牌（七搶一或八仙過海）
-      const flowerWinResult = checkFlowerWin(newState);
-      if (flowerWinResult.winner !== null) {
-        newState = setWinner(newState, flowerWinResult.winner, 'zimo');
-        set({ state: newState, isAITurn: false });
-        return;
-      }
+       // 檢查花牌胡牌（七搶一或八仙過海）
+       const flowerWinResult = checkFlowerWin(newState);
+       if (flowerWinResult.winner !== null) {
+         newState = setWinner(newState, flowerWinResult.winner, 'flower');
+         set({ state: newState, isAITurn: false });
+         return;
+       }
 
       // Get the drawn tile (the tile at wall.position - 1 is the last drawn)
       const drawnTile = newState.wall.tiles[newState.wall.position - 1];
