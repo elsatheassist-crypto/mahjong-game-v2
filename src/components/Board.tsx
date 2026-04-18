@@ -97,6 +97,7 @@ const Board: React.FC<BoardProps> = ({
               maxVisible={17}
             />
             <FlowerArea tiles={orderedPlayers[0].player.flowers} size="sm" />
+            {console.log('Top player flowers:', orderedPlayers[0].player.flowers)}
             <DiscardPile tiles={orderedPlayers[0].player.discards} tileSize={tileSize} />
           </div>
         </div>
@@ -115,6 +116,7 @@ const Board: React.FC<BoardProps> = ({
               maxVisible={9}
             />
             <FlowerArea tiles={orderedPlayers[3].player.flowers} size="sm" />
+            {console.log('Left player flowers:', orderedPlayers[3].player.flowers)}
             <DiscardPile tiles={orderedPlayers[3].player.discards} tileSize={tileSize} />
           </div>
 
@@ -151,6 +153,7 @@ const Board: React.FC<BoardProps> = ({
               maxVisible={9}
             />
             <FlowerArea tiles={orderedPlayers[1].player.flowers} size="sm" />
+            {console.log('Right player flowers:', orderedPlayers[1].player.flowers)}
             <DiscardPile tiles={orderedPlayers[1].player.discards} tileSize={tileSize} />
           </div>
         </div>
@@ -177,6 +180,7 @@ const Board: React.FC<BoardProps> = ({
               />
 
               <FlowerArea tiles={humanPlayer.player.flowers} size={tileSize} />
+              {console.log('Human player flowers:', humanPlayer.player.flowers)}
 
               {/* Action Bar */}
               <ActionBar
