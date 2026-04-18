@@ -10,6 +10,39 @@ import { Tile as TileType, TILE_DISPLAY, Suit } from './core/tile';
 import { canChi, canPeng, canGang, getChiOptions, getPengOption, getGangOption } from './core/meld';
 import { canWinByClaimingDiscard, checkWin } from './core/win';
 
+interface MeldAndFlowerAreaProps {
+  melds: React.ComponentProps<typeof MeldArea>['melds'];
+  flowers: TileType[];
+  flowerSize: TileSize;
+  isHuman?: boolean;
+  compact?: boolean;
+  forceReveal?: boolean;
+  className?: string;
+}
+
+const MeldAndFlowerArea: React.FC<MeldAndFlowerAreaProps> = ({
+  melds,
+  flowers,
+  flowerSize,
+  isHuman = false,
+  compact = false,
+  forceReveal = false,
+  className = '',
+}) => {
+  if (melds.length === 0 && flowers.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={`flex items-start justify-center gap-2 flex-wrap ${className}`}>
+      {melds.length > 0 && (
+        <MeldArea melds={melds} isHuman={isHuman} compact={compact} forceReveal={forceReveal} />
+      )}
+      <FlowerArea tiles={flowers} size={flowerSize} compact={compact} />
+    </div>
+  );
+};
+
 function App() {
   const {
     state,
@@ -261,14 +294,14 @@ function App() {
                   <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
-              {state.players[2].melds.length > 0 && (
-                <div className="mt-1">
-                  <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} forceReveal={true} />
-                </div>
-              )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[2].flowers} size="sm" />
-              </div>
+              <MeldAndFlowerArea
+                melds={state.players[2].melds}
+                flowers={state.players[2].flowers}
+                flowerSize="sm"
+                compact={true}
+                forceReveal={true}
+                className="mt-1"
+              />
             </div>
           </div>
 
@@ -284,14 +317,14 @@ function App() {
                   <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
-              {state.players[3].melds.length > 0 && (
-                <div className="mt-1">
-                  <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} forceReveal={true} />
-                </div>
-              )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[3].flowers} size="sm" />
-              </div>
+              <MeldAndFlowerArea
+                melds={state.players[3].melds}
+                flowers={state.players[3].flowers}
+                flowerSize="sm"
+                compact={true}
+                forceReveal={true}
+                className="mt-1"
+              />
             </div>
 
             {/* Center */}
@@ -334,27 +367,27 @@ function App() {
                   <Tile key={tile.id} tile={tile} size={effectiveTileSize} showLabel={false} />
                 ))}
               </div>
-              {state.players[1].melds.length > 0 && (
-                <div className="mt-1">
-                  <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} forceReveal={true} />
-                </div>
-              )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[1].flowers} size="sm" />
-              </div>
+              <MeldAndFlowerArea
+                melds={state.players[1].melds}
+                flowers={state.players[1].flowers}
+                flowerSize="sm"
+                compact={true}
+                forceReveal={true}
+                className="mt-1"
+              />
             </div>
           </div>
 
           {/* Bottom player (Human) */}
           <div className="p-4 bg-green-900/50">
-            {humanPlayer.melds.length > 0 && (
-              <div className="mb-3 flex justify-center">
-                <MeldArea melds={humanPlayer.melds} isHuman={true} forceReveal={true} />
-              </div>
-            )}
-            <div className="mb-3 flex justify-center">
-              <FlowerArea tiles={humanPlayer.flowers} size={effectiveTileSize} />
-            </div>
+            <MeldAndFlowerArea
+              melds={humanPlayer.melds}
+              flowers={humanPlayer.flowers}
+              flowerSize="md"
+              isHuman={true}
+              forceReveal={true}
+              className="mb-3"
+            />
             <div className="text-center mb-4">
               <div className="text-white text-sm mb-2">
                 👤 你的手牌（南）— {humanPlayer.hand.length} 張
@@ -519,14 +552,13 @@ function App() {
                 <span className="text-white text-xs ml-1">+{state.players[2].hand.length - 9}</span>
               )}
             </div>
-            {state.players[2].melds.length > 0 && (
-              <div className="mt-1">
-                <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} />
-              </div>
-            )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[2].flowers} size="sm" />
-              </div>
+            <MeldAndFlowerArea
+              melds={state.players[2].melds}
+              flowers={state.players[2].flowers}
+              flowerSize="sm"
+              compact={true}
+              className="mt-1"
+            />
           </div>
         </div>
 
@@ -543,14 +575,13 @@ function App() {
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
               ))}
             </div>
-            {state.players[3].melds.length > 0 && (
-              <div className="mt-1">
-                <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} />
-              </div>
-            )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[3].flowers} size="sm" />
-              </div>
+            <MeldAndFlowerArea
+              melds={state.players[3].melds}
+              flowers={state.players[3].flowers}
+              flowerSize="sm"
+              compact={true}
+              className="mt-1"
+            />
           </div>
 
           {/* Center */}
@@ -585,27 +616,25 @@ function App() {
                 <div key={i} className="w-5 h-7 bg-blue-800 rounded-sm border border-blue-600" />
               ))}
             </div>
-            {state.players[1].melds.length > 0 && (
-              <div className="mt-1">
-                <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} />
-              </div>
-            )}
-              <div className="mt-1 flex justify-center">
-                <FlowerArea tiles={state.players[1].flowers} size="sm" />
-              </div>
+            <MeldAndFlowerArea
+              melds={state.players[1].melds}
+              flowers={state.players[1].flowers}
+              flowerSize="sm"
+              compact={true}
+              className="mt-1"
+            />
           </div>
         </div>
 
         {/* Bottom player (Human) */}
         <div className="p-4 bg-green-900/50">
-          {humanPlayer.melds.length > 0 && (
-            <div className="mb-3 flex justify-center">
-              <MeldArea melds={humanPlayer.melds} isHuman={true} />
-            </div>
-          )}
-            <div className="mb-3 flex justify-center">
-              <FlowerArea tiles={humanPlayer.flowers} size={effectiveTileSize} />
-            </div>
+          <MeldAndFlowerArea
+            melds={humanPlayer.melds}
+            flowers={humanPlayer.flowers}
+            flowerSize="md"
+            isHuman={true}
+            className="mb-3"
+          />
           <div className="text-center mb-4">
             <div className="text-white text-sm mb-2">
               {getCurrentPlayerIndicator(0) && <span className="mr-1">{getCurrentPlayerIndicator(0)}</span>}
