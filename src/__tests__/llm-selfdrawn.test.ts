@@ -39,6 +39,7 @@ describe('LLM self-drawn decision', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -128,6 +129,7 @@ describe('LLM self-drawn decision', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -197,6 +199,7 @@ describe('LLM self-drawn decision', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -249,18 +252,19 @@ describe('LLM self-drawn decision', () => {
     });
 
     it('should return pass when no actions available', async () => {
-      const player: Player = {
+const player: Player = {
         id: 'south',
         hand: [
           createTile(Suit.WAN, 1), createTile(Suit.WAN, 1), createTile(Suit.WAN, 1),
-          createTile(Suit.WAN, 2), createTile(Suit.WAN, 3), createTile(Suit.WAN, 4),
-          createTile(Suit.WAN, 5), createTile(Suit.WAN, 6), createTile(Suit.WAN, 7),
+          createTile(Suit.WAN, 1), createTile(Suit.WAN, 2), createTile(Suit.WAN, 3),
+          createTile(Suit.WAN, 4), createTile(Suit.WAN, 5), createTile(Suit.WAN, 6),
           createTile(Suit.TIAO, 1), createTile(Suit.TIAO, 2), createTile(Suit.TIAO, 3),
           createTile(Suit.TONG, 1), createTile(Suit.TONG, 1),
           createTile(Suit.TIAO, 4), createTile(Suit.TIAO, 5),
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };

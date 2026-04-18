@@ -19,6 +19,7 @@ describe('meld', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -44,6 +45,7 @@ describe('meld', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -68,6 +70,7 @@ describe('meld', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };
@@ -93,6 +96,7 @@ describe('meld', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: true,
         score: 0,
       };

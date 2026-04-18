@@ -36,6 +36,7 @@ export function groupBySuit(tiles: Tile[]): Record<Suit, Tile[]> {
     [Suit.TONG]: [],
     [Suit.FENG]: [],
     [Suit.JIAN]: [],
+    [Suit.FLOWER]: [],
   };
   for (const tile of tiles) {
     groups[tile.suit].push(tile);

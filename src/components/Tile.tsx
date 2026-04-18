@@ -62,6 +62,8 @@ function getTileColorClass(tile: TileType): string {
       return 'text-blue-600';
     case Suit.FENG:
       return 'text-gray-700';
+    case Suit.FLOWER:
+      return 'text-pink-600';
     case Suit.JIAN:
       switch (tile.value) {
         case 1: return 'text-red-600';

@@ -20,6 +20,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -58,6 +59,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [pengMeld],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -85,6 +87,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -121,6 +124,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [pengMeld],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -146,6 +150,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -164,6 +169,7 @@ describe('self-drawn flow', () => {
         ],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -190,6 +196,7 @@ describe('self-drawn flow', () => {
         hand: [createTile(Suit.WAN, 1)],
         melds: [pengMeld],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -215,6 +222,7 @@ describe('self-drawn flow', () => {
         hand: [createTile(Suit.WAN, 2)],
         melds: [pengMeld],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };

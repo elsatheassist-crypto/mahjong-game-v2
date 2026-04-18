@@ -32,6 +32,7 @@ describe('LLM Meld Decision', () => {
     ],
     melds: [],
     discards: [],
+    flowers: [],
     isHuman: false,
     score: 0,
   };

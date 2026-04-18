@@ -89,52 +89,54 @@ describe('AI Integration Tests', () => {
       expect(typeof llmAgent.decideSelfDrawn).toBe('function');
     });
 
-    it('should return pass decision when no actions available', async () => {
-      const llmConfig = {
-        provider: 'openrouter' as const,
-        apiKey: 'test-key',
-        model: 'test-model',
-      };
+     it('should return pass decision when no actions available', async () => {
+       const llmConfig = {
+         provider: 'openrouter' as const,
+         apiKey: 'test-key',
+         model: 'test-model',
+       };
 
-      const llmAgent = createLLMAgent(llmConfig, 'normal');
+       const llmAgent = createLLMAgent(llmConfig, 'normal');
 
-      const mockPlayer: Player = {
-        id: 'east',
-        hand: [],
-        melds: [],
-        discards: [],
-        isHuman: false,
-        score: 0,
-      };
+       const mockPlayer: Player = {
+         id: 'east',
+         hand: [],
+         melds: [],
+         discards: [],
+         flowers: [],
+         isHuman: false,
+         score: 0,
+       };
 
-      const decision = await llmAgent.decideMeld(mockPlayer, [], {} as any);
+       const decision = await llmAgent.decideMeld(mockPlayer, [], {} as any);
 
-      expect(decision.action).toBe('pass');
-      expect(decision.meldAction).toBeUndefined();
-    });
+       expect(decision.action).toBe('pass');
+       expect(decision.meldAction).toBeUndefined();
+     });
 
-    it('should return pass decision when self-drawn with no actions', async () => {
-      const llmConfig = {
-        provider: 'openrouter' as const,
-        apiKey: 'test-key',
-        model: 'test-model',
-      };
+     it('should return pass decision when self-drawn with no actions', async () => {
+       const llmConfig = {
+         provider: 'openrouter' as const,
+         apiKey: 'test-key',
+         model: 'test-model',
+       };
 
-      const llmAgent = createLLMAgent(llmConfig, 'normal');
+       const llmAgent = createLLMAgent(llmConfig, 'normal');
 
-      const mockPlayer: Player = {
-        id: 'east',
-        hand: [],
-        melds: [],
-        discards: [],
-        isHuman: false,
-        score: 0,
-      };
+       const mockPlayer: Player = {
+         id: 'east',
+         hand: [],
+         melds: [],
+         discards: [],
+         flowers: [],
+         isHuman: false,
+         score: 0,
+       };
 
-      const decision = await llmAgent.decideSelfDrawn(mockPlayer, [], {} as any);
+       const decision = await llmAgent.decideSelfDrawn(mockPlayer, [], {} as any);
 
-      expect(decision.action).toBe('pass');
-    });
+       expect(decision.action).toBe('pass');
+     });
   });
 
   describe('Hybrid Mode', () => {
@@ -198,16 +200,17 @@ describe('AI Integration Tests', () => {
         tiles: [createTile(Suit.WAN, 1)],
         position: 1,
       },
-      players: [
-        {
-          id: playerId,
-          hand: [],
-          melds: [],
-          discards: [],
-          isHuman: false,
-          score: 0,
-        },
-      ] as Player[],
+       players: [
+         {
+           id: playerId,
+           hand: [],
+           melds: [],
+           discards: [],
+           flowers: [],
+           isHuman: false,
+           score: 0,
+         },
+       ] as Player[],
       lastDiscard: null,
       lastDiscardPlayer: null,
       winner: null,
@@ -232,14 +235,15 @@ describe('AI Integration Tests', () => {
       const llmAgent = createLLMAgent(llmConfig, 'normal');
 
       const mockTile = createTile(Suit.WAN, 1);
-      const mockPlayer: Player = {
-        id: 'east',
-        hand: [mockTile],
-        melds: [],
-        discards: [],
-        isHuman: false,
-        score: 0,
-      };
+       const mockPlayer: Player = {
+         id: 'east',
+         hand: [],
+         melds: [],
+         discards: [],
+         flowers: [],
+         isHuman: false,
+         score: 0,
+       };
 
       const gameState = createMockGameState('east');
       const result = await llmAgent.decide(mockPlayer, gameState);
@@ -266,6 +270,7 @@ describe('AI Integration Tests', () => {
         hand: [],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
@@ -304,6 +309,7 @@ describe('AI Integration Tests', () => {
         hand: [],
         melds: [],
         discards: [],
+        flowers: [],
         isHuman: false,
         score: 0,
       };
