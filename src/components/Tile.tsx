@@ -137,7 +137,7 @@ const TileComponent: React.FC<TileProps> = ({
           }
         `}
     >
-        <span className={`absolute inset-0 flex items-center justify-center font-bold ${colorClass} leading-[1] -translate-y-[12%]`} style={{ fontFamily: '"Segoe UI Symbol", "Noto Sans Symbols", sans-serif' }}>
+        <span className={`absolute inset-0 flex items-center justify-center font-bold ${colorClass} leading-[1] -translate-y-[12%]`} style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Symbol", "Noto Sans Symbols", sans-serif' }}>
           {getTileUnicode(tile)}
         </span>
 
