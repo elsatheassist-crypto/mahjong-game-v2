@@ -5,20 +5,21 @@ import TileComponent, { TileSize } from './Tile';
 interface FlowerAreaProps {
   tiles: Tile[];
   size?: TileSize;
+  compact?: boolean;
 }
 
-const FlowerArea: React.FC<FlowerAreaProps> = ({ tiles, size = 'md' }) => {
-  console.log('FlowerArea receiving tiles:', tiles);
+const FlowerArea: React.FC<FlowerAreaProps> = ({ tiles, size = 'md', compact = false }) => {
   if (tiles.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex items-center gap-1 mt-1 p-2 border-2 border-yellow-500 bg-black/50">
-      <span className="text-xs text-yellow-300 mr-1">花牌:</span>
-      {tiles.map((tile) => (
-        <TileComponent key={tile.id} tile={tile} size={size} showLabel={false} />
-      ))}
+    <div className={`flex flex-col items-center border-2 rounded-lg border-yellow-400 bg-yellow-50 ${compact ? 'p-1' : 'p-2'}`}>
+      <div className="flex gap-0.5">
+        {tiles.map((tile) => (
+          <TileComponent key={tile.id} tile={tile} size={size} showLabel={false} />
+        ))}
+      </div>
     </div>
   );
 };
