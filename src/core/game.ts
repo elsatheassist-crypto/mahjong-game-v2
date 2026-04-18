@@ -38,6 +38,7 @@ export interface GameState {
 }
 
 export function compensateFlowers(state: GameState): GameState {
+  console.log('Compensating flowers...');
   let players = [...state.players];
   let wall = state.wall;
   let hasFlower = true;
@@ -49,6 +50,7 @@ export function compensateFlowers(state: GameState): GameState {
       const flowerTiles = player.hand.filter(t => t.suit === Suit.FLOWER);
 
       if (flowerTiles.length > 0) {
+        console.log(`Player ${i} has flowers:`, flowerTiles.length);
         hasFlower = true;
         const nonFlowerHand = player.hand.filter(t => t.suit !== Suit.FLOWER);
         const newFlowers = [...player.flowers, ...flowerTiles];
@@ -143,6 +145,10 @@ export function startGame(state: GameState): GameState {
   for (let i = 0; i < 4; i++) {
     const count = i === 0 ? 17 : 16;
     const result = drawMultipleTiles(wall, count);
+    const flowerCount = result.tiles.filter(t => t.suit === Suit.FLOWER).length;
+    if (flowerCount > 0) {
+      console.log(`Player ${i} dealt ${flowerCount} flowers.`);
+    }
     players[i] = { ...players[i], hand: result.tiles };
     wall = result.wall;
   }

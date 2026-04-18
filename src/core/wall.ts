@@ -28,6 +28,7 @@ export function createFullDeck(): Tile[] {
   for (let value = 1; value <= 8; value++) {
     deck.push(createTile(Suit.FLOWER, value));
   }
+  console.log('Flower tiles created:', deck.filter(t => t.suit === Suit.FLOWER).length);
 
   return deck;
 }
