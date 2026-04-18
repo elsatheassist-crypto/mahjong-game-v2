@@ -4,6 +4,7 @@ export enum Suit {
   TONG = 'tong',
   FENG = 'feng',
   JIAN = 'jian',
+  FLOWER = 'flower',
 }
 
 export interface Tile {
@@ -52,12 +53,22 @@ export const TILE_DISPLAY: Record<Suit, Record<number, string>> = {
     3: '西',
     4: '北',
   },
-  [Suit.JIAN]: {
-    1: '中',
-    2: '發',
-    3: '白',
-  },
-};
+   [Suit.JIAN]: {
+     1: '中',
+     2: '發',
+     3: '白',
+   },
+   [Suit.FLOWER]: {
+     1: '春',
+     2: '夏',
+     3: '秋',
+     4: '冬',
+     5: '梅',
+     6: '蘭',
+     7: '竹',
+     8: '菊',
+   },
+ };
 
 export const TILE_UNICODE: Record<Suit, Record<number, string>> = {
   [Suit.WAN]: {
@@ -99,12 +110,22 @@ export const TILE_UNICODE: Record<Suit, Record<number, string>> = {
     3: '🀂',
     4: '🀃',
   },
-  [Suit.JIAN]: {
-    1: '\uD83C\uDC04\uFE0E',
-    2: '\uD83C\uDC05\uFE0E',
-    3: '\uD83C\uDC06\uFE0E',
-  },
-};
+   [Suit.JIAN]: {
+     1: '\uD83C\uDC04\uFE0E',
+     2: '\uD83C\uDC05\uFE0E',
+     3: '\uD83C\uDC06\uFE0E',
+   },
+   [Suit.FLOWER]: {
+     1: '🀭',
+     2: '🀮',
+     3: '🀯',
+     4: '🀰',
+     5: '🀱',
+     6: '🀲',
+     7: '🀳',
+     8: '🀴',
+   },
+ };
 
 export function createTile(suit: Suit, value: number): Tile {
   // Use crypto.randomUUID for truly unique IDs
@@ -128,7 +149,7 @@ export function getTileUnicode(tile: Tile): string {
 }
 
 export function compareTiles(a: Tile, b: Tile): number {
-  const suitOrder = [Suit.WAN, Suit.TIAO, Suit.TONG, Suit.FENG, Suit.JIAN];
+  const suitOrder = [Suit.WAN, Suit.TIAO, Suit.TONG, Suit.FENG, Suit.JIAN, Suit.FLOWER];
   const suitDiff = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
   if (suitDiff !== 0) return suitDiff;
   return a.value - b.value;
@@ -139,5 +160,5 @@ export function isSameTile(a: Tile, b: Tile): boolean {
 }
 
 export function isNumberSuit(tile: Tile): boolean {
-  return tile.suit === Suit.WAN || tile.suit === Suit.TIAO || tile.suit === Suit.TONG;
+  return tile.suit !== Suit.FLOWER && (tile.suit === Suit.WAN || tile.suit === Suit.TIAO || tile.suit === Suit.TONG);
 }

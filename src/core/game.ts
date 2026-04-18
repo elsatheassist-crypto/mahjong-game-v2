@@ -1,6 +1,6 @@
 import { Tile, Suit } from './tile';
 import { Wall, createWall, drawTile, drawMultipleTiles, getRemainingCount } from './wall';
-import { Player, PlayerSeat, createPlayer, addTileToHand, discardTile } from './player';
+import { Player, PlayerSeat, createPlayer, addTileToHand, discardTile, sortHand } from './player';
 import { canChi, canPeng } from './meld';
 import { canWinByClaimingDiscard } from './win';
 
@@ -35,6 +35,73 @@ export interface GameState {
     tile: Tile;
     discardedTile?: Tile;
   };
+}
+
+export function compensateFlowers(state: GameState): GameState {
+  let players = [...state.players];
+  let wall = state.wall;
+  let hasFlower = true;
+
+  while (hasFlower) {
+    hasFlower = false;
+    for (let i = 0; i < 4; i++) {
+      const player = players[i];
+      const flowerTiles = player.hand.filter(t => t.suit === Suit.FLOWER);
+
+      if (flowerTiles.length > 0) {
+        hasFlower = true;
+        const nonFlowerHand = player.hand.filter(t => t.suit !== Suit.FLOWER);
+        const newFlowers = [...player.flowers, ...flowerTiles];
+
+        let updatedHand = nonFlowerHand;
+        let updatedWall = wall;
+        for (let j = 0; j < flowerTiles.length; j++) {
+          const drawResult = drawTile(updatedWall);
+          if (drawResult.tile) {
+            updatedHand = [...updatedHand, drawResult.tile];
+            updatedWall = drawResult.wall;
+          }
+        }
+
+        players[i] = {
+          ...player,
+          hand: sortHand(updatedHand),
+          flowers: newFlowers,
+        };
+        wall = updatedWall;
+      }
+    }
+  }
+
+  return { ...state, players, wall };
+}
+
+export function checkFlowerWin(state: GameState): { winner: number | null; winType: 'flower' | null; discarder?: number | null } {
+  const totalFlowers = state.players.reduce((sum, p) => sum + p.flowers.length, 0);
+
+  for (let i = 0; i < 4; i++) {
+    const playerFlowerCount = state.players[i].flowers.length;
+
+    // 八仙過海：8 張花牌
+    if (playerFlowerCount === 8) {
+      return { winner: i, winType: 'flower', discarder: null };
+    }
+
+    // 七搶一：7 張花牌，且其他三人共有 1 張
+    if (playerFlowerCount === 7 && totalFlowers === 8) {
+      // 找出持有那 1 張花牌的玩家（放銃者）
+      let discarder: number | null = null;
+      for (let j = 0; j < 4; j++) {
+        if (j !== i && state.players[j].flowers.length === 1) {
+          discarder = j;
+          break;
+        }
+      }
+      return { winner: i, winType: 'flower', discarder };
+    }
+  }
+
+  return { winner: null, winType: null };
 }
 
 export function createInitialState(): GameState {

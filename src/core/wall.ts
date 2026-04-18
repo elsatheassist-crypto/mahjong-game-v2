@@ -24,6 +24,11 @@ export function createFullDeck(): Tile[] {
     }
   }
 
+  // Flower tiles: 1 copy each (not 4 copies)
+  for (let value = 1; value <= 8; value++) {
+    deck.push(createTile(Suit.FLOWER, value));
+  }
+
   return deck;
 }
 

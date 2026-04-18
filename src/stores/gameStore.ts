@@ -14,6 +14,8 @@ import {
   playerChi,
   playerPeng,
   playerGang,
+  compensateFlowers,
+  checkFlowerWin,
 } from '../core/game';
 import { drawTile } from '../core/wall';
 import { createAI } from '../ai';
@@ -180,10 +182,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   chiOptionSelect: [],
 
   startNewGame: () => {
-    const newState = startGameCore(createInitialState());
+    let newState = startGameCore(createInitialState());
+
+    // 起手補花：所有玩家檢查並補花，直到沒有人有花牌為止
+    newState = compensateFlowers(newState);
+
+    // 檢查是否有花牌胡牌（七搶一或八仙過海）
+    const flowerWinResult = checkFlowerWin(newState);
+    if (flowerWinResult.winner !== null) {
+      newState = setWinner(newState, flowerWinResult.winner, 'zimo');
+    }
+
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false, chiOptionSelect: [] });
 
-    if (newState.currentPlayer !== 0) {
+    if (newState.currentPlayer !== 0 && newState.phase !== GamePhase.REVEAL) {
       setTimeout(() => get().startAITurnIfNeeded(), 500);
     }
   },
@@ -230,13 +242,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const players = [...state.players];
     players[0] = { ...players[0], hand: [...players[0].hand, drawnTile] };
 
-    const newState: GameState = {
+    let newState: GameState = {
       ...state,
       wall: newWall,
       players,
       turnAction: 'discard',
       lastAction: 'draw',
     };
+
+    // 摸牌後檢查並補花
+    newState = compensateFlowers(newState);
+
+    // 檢查花牌胡牌（七搶一或八仙過海）
+    const flowerWinResult = checkFlowerWin(newState);
+    if (flowerWinResult.winner !== null) {
+      newState = setWinner(newState, flowerWinResult.winner, 'zimo');
+    }
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile.id });
   },
@@ -387,8 +408,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (state.turnAction === 'draw') {
       // AI draws a tile
-      const newState = nextTurn(state);
+      let newState = nextTurn(state);
       if (newState.phase === GamePhase.GAME_OVER) {
+        set({ state: newState, isAITurn: false });
+        return;
+      }
+
+      // AI 摸牌後檢查並補花
+      newState = compensateFlowers(newState);
+
+      // 檢查花牌胡牌（七搶一或八仙過海）
+      const flowerWinResult = checkFlowerWin(newState);
+      if (flowerWinResult.winner !== null) {
+        newState = setWinner(newState, flowerWinResult.winner, 'zimo');
         set({ state: newState, isAITurn: false });
         return;
       }

@@ -15,6 +15,7 @@ export interface Player {
   hand: Tile[];
   melds: Meld[];
   discards: Tile[];
+  flowers: Tile[];
   isHuman: boolean;
   score: number;
 }
@@ -25,6 +26,7 @@ export function createPlayer(id: PlayerSeat, isHuman: boolean = false): Player {
     hand: [],
     melds: [],
     discards: [],
+    flowers: [],
     isHuman,
     score: 0,
   };

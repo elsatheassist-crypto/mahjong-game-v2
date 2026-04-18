@@ -5,6 +5,7 @@ import Hand from './Hand';
 import DiscardPile from './DiscardPile';
 import ActionBar, { ActionType } from './ActionBar';
 import { TileSize } from './Tile';
+import FlowerArea from './FlowerArea';
 
 interface PlayerInfo {
   player: Player;
@@ -95,6 +96,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={17}
             />
+            <FlowerArea tiles={orderedPlayers[0].player.flowers} size="sm" />
             <DiscardPile tiles={orderedPlayers[0].player.discards} tileSize={tileSize} />
           </div>
         </div>
@@ -112,6 +114,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={9}
             />
+            <FlowerArea tiles={orderedPlayers[3].player.flowers} size="sm" />
             <DiscardPile tiles={orderedPlayers[3].player.discards} tileSize={tileSize} />
           </div>
 
@@ -147,6 +150,7 @@ const Board: React.FC<BoardProps> = ({
               faceDown={true}
               maxVisible={9}
             />
+            <FlowerArea tiles={orderedPlayers[1].player.flowers} size="sm" />
             <DiscardPile tiles={orderedPlayers[1].player.discards} tileSize={tileSize} />
           </div>
         </div>
@@ -171,6 +175,8 @@ const Board: React.FC<BoardProps> = ({
                 }}
                 isHuman={true}
               />
+
+              <FlowerArea tiles={humanPlayer.player.flowers} size={tileSize} />
 
               {/* Action Bar */}
               <ActionBar
