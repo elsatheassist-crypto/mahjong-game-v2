@@ -4,6 +4,7 @@ import { GamePhase } from './core/game';
 import Tile, { TileSize, getResponsiveTileSize, getDiscardTileSize } from './components/Tile';
 import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
+import FlowerArea from './components/FlowerArea';
 import GameSettings from './components/GameSettings';
 import { Tile as TileType, TILE_DISPLAY, Suit } from './core/tile';
 import { canChi, canPeng, canGang, getChiOptions, getPengOption, getGangOption } from './core/meld';
@@ -265,6 +266,9 @@ function App() {
                   <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[2].flowers} size="sm" />
+              </div>
             </div>
           </div>
 
@@ -285,6 +289,9 @@ function App() {
                   <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[3].flowers} size="sm" />
+              </div>
             </div>
 
             {/* Center */}
@@ -332,6 +339,9 @@ function App() {
                   <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} forceReveal={true} />
                 </div>
               )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[1].flowers} size="sm" />
+              </div>
             </div>
           </div>
 
@@ -342,6 +352,9 @@ function App() {
                 <MeldArea melds={humanPlayer.melds} isHuman={true} forceReveal={true} />
               </div>
             )}
+            <div className="mb-3 flex justify-center">
+              <FlowerArea tiles={humanPlayer.flowers} size={effectiveTileSize} />
+            </div>
             <div className="text-center mb-4">
               <div className="text-white text-sm mb-2">
                 👤 你的手牌（南）— {humanPlayer.hand.length} 張
@@ -511,6 +524,9 @@ function App() {
                 <MeldArea melds={state.players[2].melds} isHuman={false} compact={true} />
               </div>
             )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[2].flowers} size="sm" />
+              </div>
           </div>
         </div>
 
@@ -532,6 +548,9 @@ function App() {
                 <MeldArea melds={state.players[3].melds} isHuman={false} compact={true} />
               </div>
             )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[3].flowers} size="sm" />
+              </div>
           </div>
 
           {/* Center */}
@@ -571,6 +590,9 @@ function App() {
                 <MeldArea melds={state.players[1].melds} isHuman={false} compact={true} />
               </div>
             )}
+              <div className="mt-1 flex justify-center">
+                <FlowerArea tiles={state.players[1].flowers} size="sm" />
+              </div>
           </div>
         </div>
 
@@ -581,6 +603,9 @@ function App() {
               <MeldArea melds={humanPlayer.melds} isHuman={true} />
             </div>
           )}
+            <div className="mb-3 flex justify-center">
+              <FlowerArea tiles={humanPlayer.flowers} size={effectiveTileSize} />
+            </div>
           <div className="text-center mb-4">
             <div className="text-white text-sm mb-2">
               {getCurrentPlayerIndicator(0) && <span className="mr-1">{getCurrentPlayerIndicator(0)}</span>}
