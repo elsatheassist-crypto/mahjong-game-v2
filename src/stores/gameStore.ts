@@ -184,9 +184,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startNewGame: () => {
     let newState = startGameCore(createInitialState());
 
-    // 起手補花：所有玩家檢查並補花，直到沒有人有花牌為止
-    newState = compensateFlowers(newState);
-
     // 檢查是否有花牌胡牌（七搶一或八仙過海）
     const flowerWinResult = checkFlowerWin(newState);
     if (flowerWinResult.winner !== null) {

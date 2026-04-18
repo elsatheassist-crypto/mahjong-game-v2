@@ -138,6 +138,7 @@ export function startGame(state: GameState): GameState {
       hand: [],
       melds: [],
       discards: [],
+      flowers: [],
     };
   }
 
@@ -153,7 +154,7 @@ export function startGame(state: GameState): GameState {
     wall = result.wall;
   }
 
-  return {
+  const dealtState: GameState = {
     ...state,
     phase: GamePhase.PLAYING,
     currentPlayer: 0,
@@ -165,6 +166,8 @@ export function startGame(state: GameState): GameState {
     turnAction: 'discard',
     wind: 'east',
   };
+
+  return compensateFlowers(dealtState);
 }
 
 export function playerDrawTile(state: GameState, playerIndex: number): GameState {
