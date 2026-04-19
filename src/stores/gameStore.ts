@@ -16,6 +16,7 @@ import {
   playerGang,
   compensateFlowers,
   checkFlowerWin,
+  getRemainingTiles,
 } from '../core/game';
 import { drawTile } from '../core/wall';
 import { createAI } from '../ai';
@@ -227,9 +228,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.currentPlayer !== 0) return;
     if (state.turnAction !== 'draw') return;
 
+    // 檢查流局條件（鐵八墩規則：剩餘牌數 <= 16 張時流局）
+    if (getRemainingTiles(state) <= 16) {
+      set({
+        state: {
+          ...state,
+          phase: GamePhase.REVEAL,
+          winner: null,
+          winType: null,
+        },
+      });
+      return;
+    }
+
     const drawnResult = drawTile(state.wall);
     if (drawnResult.tile === null) {
-      set({ state: { ...state, phase: GamePhase.REVEAL } });
+      set({
+        state: {
+          ...state,
+          phase: GamePhase.REVEAL,
+          winner: null,
+          winType: null,
+        },
+      });
       return;
     }
 
@@ -275,6 +296,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
   passAction: () => {
     const { state } = get();
     const newState = skipAction(state);
+
+    // 檢查是否需要進入流局（鐵八墩規則：剩餘牌數 <= 16 張時流局）
+    if (newState.phase === GamePhase.PLAYING && newState.turnAction === 'draw') {
+      if (getRemainingTiles(newState) <= 16) {
+        set({
+          state: {
+            ...newState,
+            phase: GamePhase.REVEAL,
+            winner: null,
+            winType: null,
+          },
+          chiOptionSelect: [],
+        });
+        return;
+      }
+    }
+
     set({ state: newState, chiOptionSelect: [] });
 
     if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
@@ -407,6 +445,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     if (state.turnAction === 'draw') {
+      // 檢查流局條件（鐵八墩規則：剩餘牌數 <= 16 張時流局）
+      if (getRemainingTiles(state) <= 16) {
+        set({
+          state: {
+            ...state,
+            phase: GamePhase.REVEAL,
+            winner: null,
+            winType: null,
+          },
+          isAITurn: false,
+        });
+        return;
+      }
+
       // AI draws a tile
       let newState = nextTurn(state);
       if (newState.phase === GamePhase.GAME_OVER) {

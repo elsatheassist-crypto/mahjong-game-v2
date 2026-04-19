@@ -235,7 +235,7 @@ export function nextTurn(state: GameState): GameState {
 
   const result = drawTile(state.wall);
   if (result.tile === null) {
-    return { ...state, phase: GamePhase.REVEAL };
+    return { ...state, phase: GamePhase.REVEAL, winner: null, winType: null };
   }
 
   const players = [...state.players];
