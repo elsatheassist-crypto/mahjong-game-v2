@@ -44,35 +44,44 @@ const MeldAndFlowerArea: React.FC<MeldAndFlowerAreaProps> = ({
 };
 
 function App() {
-  const {
-    state,
-    difficulty,
-    aiMode,
-    llmConfig,
-    hybridConfig,
-    tileSize,
-    startNewGame,
-    drawTile,
-    selectTile,
-    discardTile,
-    passAction,
-    chiAction,
-    chiActionWithOption,
-    pengAction,
-    gangAction,
-    winAction,
-    confirmReveal,
-    setDifficulty,
-    setAIMode,
-    setLLMConfig,
-    setHybridConfig,
-    setTileSize,
-  } = useGameStore();
+    const {
+      state,
+      difficulty,
+      aiMode,
+      llmConfig,
+      hybridConfig,
+      tileSize,
+      assistMode,
+      humanAiMode,
+      autoPlayDelay,
+      startNewGame,
+      drawTile,
+      selectTile,
+      discardTile,
+      passAction,
+      chiAction,
+      chiActionWithOption,
+      pengAction,
+      gangAction,
+      winAction,
+      confirmReveal,
+      setDifficulty,
+      setAIMode,
+      setLLMConfig,
+      setHybridConfig,
+      setTileSize,
+      setAssistMode,
+      setHumanAiMode,
+      setAutoPlayDelay,
+    } = useGameStore();
 
   const selectedTileId = useGameStore((s) => s.selectedTileId);
   const lastDrawnTileId = useGameStore((s) => s.lastDrawnTileId);
   const isAITurn = useGameStore((s) => s.isAITurn);
   const chiOptionSelect = useGameStore((s) => s.chiOptionSelect);
+  const currentHint = useGameStore((s) => s.currentHint);
+  const isHintLoading = useGameStore((s) => s.isHintLoading);
+  const cancelAutoPlay = useGameStore((s) => s.cancelAutoPlay);
 
   const effectiveTileSize = tileSize === 'auto' ? getResponsiveTileSize() : tileSize;
   const discardTileSize = getDiscardTileSize(effectiveTileSize);
@@ -251,6 +260,12 @@ function App() {
                 onHybridConfigChange={setHybridConfig}
                 tileSize={tileSize}
                 onTileSizeChange={setTileSize}
+                assistMode={assistMode}
+                onAssistModeChange={setAssistMode}
+                humanAiMode={humanAiMode}
+                onHumanAiModeChange={setHumanAiMode}
+                autoPlayDelay={autoPlayDelay}
+                onAutoPlayDelayChange={setAutoPlayDelay}
               />
               <button
                 onClick={() => setShowSettings(false)}
@@ -553,6 +568,19 @@ function App() {
         </div>
       </div>
 
+      {/* Auto-play Banner */}
+      {assistMode === 'auto' && (
+        <div className="bg-yellow-100 text-yellow-800 p-2 flex justify-center items-center gap-4 font-bold shadow-md">
+          <span>🤖 託管模式執行中</span>
+          <button
+            onClick={cancelAutoPlay}
+            className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded-md text-sm transition-colors cursor-pointer"
+          >
+            取消託管
+          </button>
+        </div>
+      )}
+
       {/* Game Area */}
       <div className="flex-1 flex flex-col">
         {/* Top player (North) */}
@@ -609,6 +637,16 @@ function App() {
             </div>
             {getLastActionText() && (
               <div className="text-white/80 text-sm">{getLastActionText()}</div>
+            )}
+
+            {assistMode !== 'none' && (
+              <div className="text-blue-300 text-sm font-bold mt-1 min-h-[20px]">
+                {isHintLoading ? (
+                  '💡 AI 思考建議中...'
+                ) : currentHint ? (
+                  `💡 AI 建議：${currentHint.action}${currentHint.tile ? ` ${getTileLabel(currentHint.tile)}` : ''}${currentHint.reason ? ` (${currentHint.reason})` : ''}`
+                ) : null}
+              </div>
             )}
 
             <div className="mt-2 p-3 bg-green-900/30 rounded-lg w-full max-w-2xl min-h-[100px]">
@@ -801,6 +839,12 @@ function App() {
               onHybridConfigChange={setHybridConfig}
               tileSize={tileSize}
               onTileSizeChange={setTileSize}
+              assistMode={assistMode}
+              onAssistModeChange={setAssistMode}
+              humanAiMode={humanAiMode}
+              onHumanAiModeChange={setHumanAiMode}
+              autoPlayDelay={autoPlayDelay}
+              onAutoPlayDelayChange={setAutoPlayDelay}
             />
             <button
               onClick={() => setShowSettings(false)}

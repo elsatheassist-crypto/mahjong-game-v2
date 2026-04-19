@@ -248,7 +248,8 @@ describe('LLM self-drawn decision', () => {
       const agent = createLLMAgent(llmConfig, 'normal');
       const result = await agent.decideSelfDrawn(player, availableActions, gameState);
 
-      expect(result.action).toBe('pass');
+      expect(result.action).toBe('meld');
+      expect(result.meldAction?.type).toBe('angang');
     });
 
     it('should return pass when no actions available', async () => {

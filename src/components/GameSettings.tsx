@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { callLLM } from '../ai/llm/providers';
 import { LLMConfig } from '../ai/llm/index';
-import { HybridConfig, TileSize } from '../stores/gameStore';
+import { HybridConfig, TileSize, AssistMode, HumanAiMode } from '../stores/gameStore';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
@@ -23,6 +23,12 @@ interface GameSettingsProps {
   onHybridConfigChange: (c: Partial<HybridConfig>) => void;
   tileSize: TileSize;
   onTileSizeChange: (s: TileSize) => void;
+  assistMode: AssistMode;
+  onAssistModeChange: (mode: AssistMode) => void;
+  humanAiMode: HumanAiMode;
+  onHumanAiModeChange: (mode: HumanAiMode) => void;
+  autoPlayDelay: number;
+  onAutoPlayDelayChange: (delay: number) => void;
 }
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'error';
@@ -38,6 +44,12 @@ const GameSettings: React.FC<GameSettingsProps> = ({
   onHybridConfigChange,
   tileSize,
   onTileSizeChange,
+  assistMode,
+  onAssistModeChange,
+  humanAiMode,
+  onHumanAiModeChange,
+  autoPlayDelay,
+  onAutoPlayDelayChange,
 }) => {
   const [apiKey, setApiKey] = useState(llmConfig?.apiKey || '');
   const [model, setModel] = useState(llmConfig?.model || '');
@@ -64,6 +76,23 @@ const GameSettings: React.FC<GameSettingsProps> = ({
     { value: 'md', label: '中', desc: 'iPhone Plus/iPad Mini' },
     { value: 'lg', label: '大', desc: 'iPad' },
     { value: 'xl', label: '超大', desc: 'iPad Pro/桌機' },
+  ];
+
+  const assistModes: { value: AssistMode; label: string; desc: string }[] = [
+    { value: 'none', label: '關閉', desc: '無輔助' },
+    { value: 'hint', label: '僅提示', desc: '顯示建議操作' },
+    { value: 'auto', label: '自動託管', desc: '自動進行遊戲' },
+  ];
+
+  const humanAiModes: { value: HumanAiMode; label: string; desc: string }[] = [
+    { value: 'algorithm', label: '本地演算法', desc: '快速免費' },
+    { value: 'llm', label: 'LLM 模型', desc: '更聰明的決策' },
+  ];
+
+  const autoPlayDelays: { value: number; label: string; desc: string }[] = [
+    { value: 1000, label: '1秒', desc: '快速' },
+    { value: 1500, label: '1.5秒', desc: '適中' },
+    { value: 2000, label: '2秒', desc: '慢速' },
   ];
 
   const models: Record<string, { label: string; defaultModel: string }> = {
@@ -230,6 +259,82 @@ const GameSettings: React.FC<GameSettingsProps> = ({
               <div className="text-xs text-gray-500">{size.desc}</div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Player Assist Settings */}
+      <div className="border-t pt-4">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">👤 玩家輔助設定</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-gray-600 mb-2">輔助模式</label>
+            <div className="grid grid-cols-3 gap-2">
+              {assistModes.map((mode) => (
+                <button
+                  key={mode.value}
+                  onClick={() => onAssistModeChange(mode.value)}
+                  className={`
+                    py-2 px-2 rounded-lg text-center
+                    transition-colors
+                    ${assistMode === mode.value
+                      ? 'bg-blue-100 border-2 border-blue-500'
+                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <div className="text-sm font-medium">{mode.label}</div>
+                  <div className="text-xs text-gray-500">{mode.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-600 mb-2">輔助 AI 引擎</label>
+            <div className="grid grid-cols-2 gap-2">
+              {humanAiModes.map((mode) => (
+                <button
+                  key={mode.value}
+                  onClick={() => onHumanAiModeChange(mode.value)}
+                  className={`
+                    py-2 px-2 rounded-lg text-center
+                    transition-colors
+                    ${humanAiMode === mode.value
+                      ? 'bg-blue-100 border-2 border-blue-500'
+                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <div className="text-sm font-medium">{mode.label}</div>
+                  <div className="text-xs text-gray-500">{mode.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-600 mb-2">託管延遲時間</label>
+            <div className="grid grid-cols-3 gap-2">
+              {autoPlayDelays.map((delay) => (
+                <button
+                  key={delay.value}
+                  onClick={() => onAutoPlayDelayChange(delay.value)}
+                  className={`
+                    py-2 px-2 rounded-lg text-center
+                    transition-colors
+                    ${autoPlayDelay === delay.value
+                      ? 'bg-blue-100 border-2 border-blue-500'
+                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <div className="text-sm font-medium">{delay.label}</div>
+                  <div className="text-xs text-gray-500">{delay.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

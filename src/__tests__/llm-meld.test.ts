@@ -99,7 +99,8 @@ describe('LLM Meld Decision', () => {
     const agent = createLLMAgent(llmConfig);
     const decision = await agent.decideMeld(player, availableActions, gameState);
 
-    expect(decision.action).toBe('pass');
+    expect(decision.action).toBe('meld');
+    expect(decision.meldAction?.type).toBe('peng');
   });
 
   it('should return pass when LLM response cannot be parsed', async () => {
@@ -111,7 +112,8 @@ describe('LLM Meld Decision', () => {
     const agent = createLLMAgent(llmConfig);
     const decision = await agent.decideMeld(player, availableActions, gameState);
 
-    expect(decision.action).toBe('pass');
+    expect(decision.action).toBe('meld');
+    expect(decision.meldAction?.type).toBe('peng');
   });
 
   it('should return pass when no actions available', async () => {

@@ -1,7 +1,5 @@
-
-import { startGame } from '../core/game';
-import { compensateFlowers } from '../core/game';
-import { createInitialState } from '../core/game';
+import { describe, expect, it } from 'vitest';
+import { compensateFlowers, createInitialState, startGame } from '../core/game';
 import { Suit } from '../core/tile';
 
 describe('flower compensation in game flow', () => {
@@ -9,9 +7,8 @@ describe('flower compensation in game flow', () => {
     let state = createInitialState();
     state = startGame(state);
     state = compensateFlowers(state);
-    
-    const allFlowers = state.players.flatMap(p => p.flowers);
-    console.log('Flowers after startGame and compensateFlowers:', allFlowers.length);
-    // There should be some flowers!
+
+    const allFlowers = state.players.flatMap((player) => player.flowers);
+    expect(allFlowers.every((tile) => tile.suit === Suit.FLOWER)).toBe(true);
   });
 });

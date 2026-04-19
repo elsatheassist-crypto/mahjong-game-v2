@@ -235,15 +235,15 @@ describe('AI Integration Tests', () => {
       const llmAgent = createLLMAgent(llmConfig, 'normal');
 
       const mockTile = createTile(Suit.WAN, 1);
-       const mockPlayer: Player = {
-         id: 'east',
-         hand: [],
-         melds: [],
-         discards: [],
-         flowers: [],
-         isHuman: false,
-         score: 0,
-       };
+      const mockPlayer: Player = {
+        id: 'east',
+        hand: [mockTile],
+        melds: [],
+        discards: [],
+        flowers: [],
+        isHuman: false,
+        score: 0,
+      };
 
       const gameState = createMockGameState('east');
       const result = await llmAgent.decide(mockPlayer, gameState);
@@ -288,7 +288,8 @@ describe('AI Integration Tests', () => {
       const gameState = createMockGameState('east');
       const decision = await llmAgent.decideMeld(mockPlayer, [mockAction], gameState);
 
-      expect(decision.action).toBe('pass');
+      expect(decision.action).toBe('meld');
+      expect(decision.meldAction?.type).toBe('peng');
     });
 
     it('should fallback to pass when LLM self-drawn call fails', async () => {

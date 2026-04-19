@@ -28,9 +28,20 @@ import { Tile, Suit, isSameTile } from '../core/tile';
 import { getChiOptions, getPengOption, getGangOption, getAvailableActions, getSelfDrawnActions, MeldAction } from '../core/meld';
 import { calculateScoreBreakdown } from '../core/score';
 
+let humanAssistAutoPlayTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const RESET_ASSIST_TRANSIENT_STATE: Pick<GameStore, 'currentHint' | 'isHintLoading' | 'hintTurnId'> = {
+  currentHint: null,
+  isHintLoading: false,
+  hintTurnId: '',
+};
+
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 export type AIMode = 'algorithm' | 'llm' | 'hybrid';
 export type TileSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'auto';
+export type AssistMode = 'none' | 'hint' | 'auto';
+export type HumanAiMode = 'algorithm' | 'llm';
+export type HumanAssistHint = { action: string; tile?: Tile; meldAction?: MeldAction; reason?: string } | null;
 
 interface LLMConfigData {
   provider: 'minimax' | 'openrouter' | 'gemini';
@@ -48,6 +59,9 @@ interface GameStore {
   state: GameState;
   difficulty: AIDifficulty;
   aiMode: AIMode;
+  assistMode: AssistMode;
+  humanAiMode: HumanAiMode;
+  autoPlayDelay: number;
   soundEnabled: boolean;
   tileSize: TileSize;
   isAITurn: boolean;
@@ -57,10 +71,16 @@ interface GameStore {
   hybridConfig: HybridConfig;
   isLLMThinking: boolean;
   chiOptionSelect: MeldAction[];
+  currentHint: HumanAssistHint;
+  isHintLoading: boolean;
+  hintTurnId: string;
 
   startNewGame: () => void;
   setDifficulty: (d: AIDifficulty) => void;
   setAIMode: (m: AIMode) => void;
+  setAssistMode: (m: AssistMode) => void;
+  setHumanAiMode: (m: HumanAiMode) => void;
+  setAutoPlayDelay: (delay: number) => void;
   setSoundEnabled: (e: boolean) => void;
   setTileSize: (s: TileSize) => void;
   setLLMConfig: (c: LLMConfigData | null) => void;
@@ -77,7 +97,9 @@ interface GameStore {
   winAction: () => void;
   confirmReveal: () => void;
   executeAITurn: () => Promise<void>;
+  cancelAutoPlay: () => void;
   startAITurnIfNeeded: () => void;
+  startHumanAssistIfNeeded: () => void;
 }
 
 const STORAGE_KEY = 'mahjong-llm-config';
@@ -92,6 +114,7 @@ function loadLLMConfig(): LLMConfigData | null {
       }
     }
   } catch {
+    // Ignore invalid localStorage data.
   }
   return null;
 }
@@ -104,6 +127,7 @@ function saveLLMConfig(config: LLMConfigData | null): void {
       localStorage.removeItem(STORAGE_KEY);
     }
   } catch {
+    // Ignore localStorage write failures.
   }
 }
 
@@ -133,6 +157,7 @@ function loadHybridConfig(): HybridConfig {
       }
     }
   } catch {
+    // Ignore invalid localStorage data.
   }
   return DEFAULT_HYBRID_CONFIG;
 }
@@ -141,6 +166,7 @@ function saveHybridConfig(config: HybridConfig): void {
   try {
     localStorage.setItem(HYBRID_STORAGE_KEY, JSON.stringify(config));
   } catch {
+    // Ignore localStorage write failures.
   }
 }
 
@@ -157,6 +183,7 @@ function loadTileSize(): TileSize {
       }
     }
   } catch {
+    // Ignore invalid localStorage data.
   }
   return DEFAULT_TILE_SIZE;
 }
@@ -165,13 +192,51 @@ function saveTileSize(size: TileSize): void {
   try {
     localStorage.setItem(TILE_SIZE_STORAGE_KEY, size);
   } catch {
+    // Ignore localStorage write failures.
   }
+}
+
+function clearHumanAssistAutoPlayTimeout(): void {
+  if (humanAssistAutoPlayTimeout) {
+    clearTimeout(humanAssistAutoPlayTimeout);
+    humanAssistAutoPlayTimeout = null;
+  }
+}
+
+function clearPendingAssist(set: (state: Partial<GameStore>) => void): void {
+  clearHumanAssistAutoPlayTimeout();
+  set(RESET_ASSIST_TRANSIENT_STATE);
+}
+
+function isHumanAssistableTurn(state: GameState): boolean {
+  return (
+    state.phase === GamePhase.PLAYING &&
+    state.currentPlayer === 0 &&
+    (state.turnAction === 'discard' || state.turnAction === 'waiting')
+  );
+}
+
+function syncHumanAssistAfterTransition(
+  set: (state: Partial<GameStore>) => void,
+  get: () => GameStore,
+  state: GameState
+): void {
+  clearPendingAssist(set);
+
+  if (!isHumanAssistableTurn(state)) {
+    return;
+  }
+
+  setTimeout(() => get().startHumanAssistIfNeeded(), 0);
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   state: createInitialState(),
   difficulty: 'hard',
   aiMode: 'algorithm',
+  assistMode: 'none',
+  humanAiMode: 'algorithm',
+  autoPlayDelay: 1500,
   soundEnabled: true,
   tileSize: loadTileSize(),
   isAITurn: false,
@@ -181,6 +246,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   hybridConfig: loadHybridConfig(),
   isLLMThinking: false,
   chiOptionSelect: [],
+  currentHint: null,
+  isHintLoading: false,
+  hintTurnId: '',
 
   startNewGame: () => {
     let newState = startGameCore(createInitialState());
@@ -191,15 +259,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newState = setWinner(newState, flowerWinResult.winner, 'flower');
     }
 
-    set({ state: newState, selectedTileId: null, lastDrawnTileId: null, isAITurn: false, isLLMThinking: false, chiOptionSelect: [] });
+    clearPendingAssist(set);
+
+    set({
+      state: newState,
+      selectedTileId: null,
+      lastDrawnTileId: null,
+      isAITurn: false,
+      isLLMThinking: false,
+      chiOptionSelect: [],
+    });
 
     if (newState.currentPlayer !== 0 && newState.phase !== GamePhase.REVEAL) {
       setTimeout(() => get().startAITurnIfNeeded(), 500);
+    } else {
+      syncHumanAssistAfterTransition(set, get, newState);
     }
   },
 
   setDifficulty: (difficulty) => set({ difficulty }),
   setAIMode: (aiMode) => set({ aiMode }),
+  setAssistMode: (assistMode) => {
+    clearPendingAssist(set);
+    set({ assistMode });
+
+    if (assistMode !== 'none' && isHumanAssistableTurn(get().state)) {
+      setTimeout(() => get().startHumanAssistIfNeeded(), 0);
+    }
+  },
+  setHumanAiMode: (humanAiMode) => set({ humanAiMode }),
+  setAutoPlayDelay: (autoPlayDelay) => set({ autoPlayDelay }),
   setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
   setTileSize: (tileSize) => {
     saveTileSize(tileSize);
@@ -230,6 +319,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 檢查流局條件（鐵八墩規則：剩餘牌數 <= 16 張時流局）
     if (getRemainingTiles(state) <= 16) {
+      clearPendingAssist(set);
       set({
         state: {
           ...state,
@@ -243,6 +333,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const drawnResult = drawTile(state.wall);
     if (drawnResult.tile === null) {
+      clearPendingAssist(set);
       set({
         state: {
           ...state,
@@ -275,12 +366,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const flowerWinResult = checkFlowerWin(newState);
     if (flowerWinResult.winner !== null) {
       newState = setWinner(newState, flowerWinResult.winner, 'flower');
+      clearPendingAssist(set);
     }
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: drawnTile.id });
+    syncHumanAssistAfterTransition(set, get, newState);
   },
 
   discardTile: (tileId) => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.currentPlayer !== 0) return;
@@ -294,6 +389,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   passAction: () => {
+    clearPendingAssist(set);
     const { state } = get();
     const newState = skipAction(state);
 
@@ -317,10 +413,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (newState.phase === GamePhase.PLAYING && newState.currentPlayer !== 0) {
       setTimeout(() => get().startAITurnIfNeeded(), 300);
+    } else {
+      syncHumanAssistAfterTransition(set, get, newState);
     }
   },
 
   chiAction: () => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.turnAction !== 'waiting') return;
@@ -341,9 +441,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = playerChi(state, 0, handTileIds, chiOption.meld.tiles);
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+    syncHumanAssistAfterTransition(set, get, newState);
   },
 
   chiActionWithOption: (chiOption: MeldAction) => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.turnAction !== 'waiting') return;
@@ -353,9 +456,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = playerChi(state, 0, handTileIds, chiOption.meld.tiles);
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+    syncHumanAssistAfterTransition(set, get, newState);
   },
 
   pengAction: () => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.turnAction !== 'waiting') return;
@@ -370,9 +476,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = playerPeng(state, 0, handTileIds, pengOption.meld.tiles);
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+    syncHumanAssistAfterTransition(set, get, newState);
   },
 
   gangAction: () => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.turnAction !== 'waiting') return;
@@ -387,9 +496,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState = playerGang(state, 0, handTileIds, gangOption.meld.tiles);
 
     set({ state: newState, selectedTileId: null, lastDrawnTileId: null, chiOptionSelect: [] });
+    syncHumanAssistAfterTransition(set, get, newState);
   },
 
   winAction: () => {
+    clearPendingAssist(set);
+
     const { state } = get();
     if (state.phase !== GamePhase.PLAYING) return;
 
@@ -424,7 +536,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       players,
     };
 
+    clearPendingAssist(set);
     set({ state: newState, lastDrawnTileId: null });
+  },
+
+  cancelAutoPlay: () => {
+    clearPendingAssist(set);
+    set({ assistMode: 'none' });
   },
 
   startAITurnIfNeeded: () => {
@@ -434,6 +552,225 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({ isAITurn: true });
     get().executeAITurn();
+  },
+
+  startHumanAssistIfNeeded: () => {
+    const { state, assistMode, humanAiMode, llmConfig, difficulty } = get();
+
+    if (assistMode === 'none') return;
+    if (state.phase !== GamePhase.PLAYING) return;
+    if (state.currentPlayer !== 0) return;
+    if (state.turnAction !== 'discard' && state.turnAction !== 'waiting') return;
+
+    clearHumanAssistAutoPlayTimeout();
+
+    const humanPlayer = state.players[0];
+    const turnId = `${state.turnAction}-${state.currentPlayer}-${Date.now()}-${Math.random()}`;
+
+    set({
+      hintTurnId: turnId,
+      isHintLoading: true,
+      currentHint: null,
+    });
+
+    if (state.turnAction === 'discard') {
+      const hintPromise = humanAiMode === 'llm' && llmConfig
+        ? createLLMAgent({
+            provider: llmConfig.provider,
+            apiKey: llmConfig.apiKey,
+            model: llmConfig.model,
+          }, difficulty).decide(humanPlayer, state)
+        : createAI(difficulty).decideDiscard(humanPlayer, state);
+
+      void hintPromise
+        .then((tile) => {
+          const currentStore = get();
+          const currentState = currentStore.state;
+
+          if (
+            currentStore.hintTurnId !== turnId ||
+            currentState.phase !== GamePhase.PLAYING ||
+            currentState.currentPlayer !== 0 ||
+            currentState.turnAction !== 'discard'
+          ) {
+            return;
+          }
+
+          set({
+            currentHint: {
+              action: '出牌',
+              tile,
+              reason: humanAiMode === 'llm'
+                ? 'AI 助手建議先打出這張牌。'
+                : '演算法建議先打出這張牌。',
+            },
+            isHintLoading: false,
+          });
+
+          if (currentStore.assistMode === 'auto') {
+            clearHumanAssistAutoPlayTimeout();
+            const autoPlayTimeout = setTimeout(() => {
+              if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+                humanAssistAutoPlayTimeout = null;
+              }
+
+              const latestStore = get();
+              const latestState = latestStore.state;
+
+              if (
+                latestStore.assistMode !== 'auto' ||
+                latestStore.hintTurnId !== turnId ||
+                latestState.phase !== GamePhase.PLAYING ||
+                latestState.currentPlayer !== 0 ||
+                latestState.turnAction !== 'discard'
+              ) {
+                return;
+              }
+
+              latestStore.discardTile(tile.id);
+            }, currentStore.autoPlayDelay);
+            humanAssistAutoPlayTimeout = autoPlayTimeout;
+          }
+        })
+        .catch((error) => {
+          console.error('Human assist discard error:', error);
+
+          const currentStore = get();
+          const currentState = currentStore.state;
+
+          if (
+            currentStore.hintTurnId !== turnId ||
+            currentState.phase !== GamePhase.PLAYING ||
+            currentState.currentPlayer !== 0 ||
+            currentState.turnAction !== 'discard'
+          ) {
+            return;
+          }
+
+          set({ isHintLoading: false, currentHint: null });
+        });
+      return;
+    }
+
+    const lastDiscard = state.lastDiscard;
+    const lastDiscardPlayer = state.lastDiscardPlayer;
+    if (!lastDiscard || lastDiscardPlayer === null) {
+      set({ isHintLoading: false, currentHint: null });
+      return;
+    }
+
+    const canWin = canWinByClaimingDiscard(humanPlayer.hand, humanPlayer.melds, lastDiscard);
+    const availableActions = getAvailableActions(
+      humanPlayer,
+      lastDiscard,
+      state.players[lastDiscardPlayer].id,
+      humanPlayer.id,
+      canWin
+    );
+
+    const waitingDecisionPromise = humanAiMode === 'llm' && llmConfig
+      ? createLLMAgent({
+          provider: llmConfig.provider,
+          apiKey: llmConfig.apiKey,
+          model: llmConfig.model,
+        }, difficulty).decideMeld(humanPlayer, availableActions, state)
+      : createAI(difficulty).decideMeld(humanPlayer, availableActions, state);
+
+    void waitingDecisionPromise
+      .then((decision) => {
+        const currentStore = get();
+        const currentState = currentStore.state;
+
+        if (
+          currentStore.hintTurnId !== turnId ||
+          currentState.phase !== GamePhase.PLAYING ||
+          currentState.currentPlayer !== 0 ||
+          currentState.turnAction !== 'waiting' ||
+          !currentState.lastDiscard ||
+          currentState.lastDiscardPlayer === null
+        ) {
+          return;
+        }
+
+        let hint: HumanAssistHint;
+        if (decision.action === 'meld' && decision.meldAction) {
+          if (decision.meldAction.type === 'hu') {
+            hint = { action: '胡牌' };
+          } else if (decision.meldAction.type === 'peng') {
+            hint = { action: '碰', meldAction: decision.meldAction };
+          } else if (decision.meldAction.type === 'gang') {
+            hint = { action: '槓', meldAction: decision.meldAction };
+          } else if (decision.meldAction.type === 'chi') {
+            hint = { action: '吃', meldAction: decision.meldAction };
+          } else {
+            hint = { action: '過' };
+          }
+        } else {
+          hint = { action: '過' };
+        }
+
+        if (get().hintTurnId !== turnId) {
+          return;
+        }
+
+        set({ currentHint: hint, isHintLoading: false });
+
+        if (currentStore.assistMode === 'auto') {
+          clearHumanAssistAutoPlayTimeout();
+          const autoPlayTimeout = setTimeout(() => {
+            if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+              humanAssistAutoPlayTimeout = null;
+            }
+
+            const latestStore = get();
+            const latestState = latestStore.state;
+
+            if (
+              latestStore.assistMode !== 'auto' ||
+              latestStore.hintTurnId !== turnId ||
+              latestState.phase !== GamePhase.PLAYING ||
+              latestState.currentPlayer !== 0 ||
+              latestState.turnAction !== 'waiting' ||
+              !latestState.lastDiscard ||
+              latestState.lastDiscardPlayer === null
+            ) {
+              return;
+            }
+
+            if (hint.action === '胡牌') {
+              latestStore.winAction();
+            } else if (hint.action === '碰') {
+              latestStore.pengAction();
+            } else if (hint.action === '槓') {
+              latestStore.gangAction();
+            } else if (hint.action === '吃' && hint.meldAction) {
+              latestStore.chiActionWithOption(hint.meldAction);
+            } else {
+              latestStore.passAction();
+            }
+          }, currentStore.autoPlayDelay);
+          humanAssistAutoPlayTimeout = autoPlayTimeout;
+        }
+      })
+      .catch((error) => {
+        console.error('Human assist waiting error:', error);
+
+        const currentStore = get();
+        const currentState = currentStore.state;
+
+        if (
+          currentStore.hintTurnId !== turnId ||
+          currentState.phase !== GamePhase.PLAYING ||
+          currentState.currentPlayer !== 0 ||
+          currentState.turnAction !== 'waiting' ||
+          !currentState.lastDiscard ||
+          currentState.lastDiscardPlayer === null
+        ) {
+          return;
+        }
+
+        set({ isHintLoading: false, currentHint: null });
+      });
   },
 
   executeAITurn: async () => {
@@ -447,6 +784,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.turnAction === 'draw') {
       // 檢查流局條件（鐵八墩規則：剩餘牌數 <= 16 張時流局）
       if (getRemainingTiles(state) <= 16) {
+        clearPendingAssist(set);
         set({
           state: {
             ...state,
@@ -462,6 +800,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // AI draws a tile
       let newState = nextTurn(state);
       if (newState.phase === GamePhase.GAME_OVER) {
+        clearPendingAssist(set);
         set({ state: newState, isAITurn: false });
         return;
       }
@@ -470,12 +809,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newState = compensateFlowers(newState);
 
        // 檢查花牌胡牌（七搶一或八仙過海）
-       const flowerWinResult = checkFlowerWin(newState);
-       if (flowerWinResult.winner !== null) {
-         newState = setWinner(newState, flowerWinResult.winner, 'flower');
-         set({ state: newState, isAITurn: false });
-         return;
-       }
+        const flowerWinResult = checkFlowerWin(newState);
+        if (flowerWinResult.winner !== null) {
+          newState = setWinner(newState, flowerWinResult.winner, 'flower');
+          clearPendingAssist(set);
+          set({ state: newState, isAITurn: false });
+          return;
+        }
 
       // Get the drawn tile (the tile at wall.position - 1 is the last drawn)
       const drawnTile = newState.wall.tiles[newState.wall.position - 1];
@@ -495,6 +835,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const winResult = checkWin(aiPlayer.hand, aiPlayer.melds);
       if (winResult.isWin) {
         const winState = setWinner(newState, newState.currentPlayer, 'zimo');
+        clearPendingAssist(set);
         set({ state: winState, isAITurn: false });
         return;
       }
@@ -536,6 +877,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (meldAction.type === 'hu') {
             // Self-drawn win
             const winState = setWinner(newState, newState.currentPlayer, 'zimo');
+            clearPendingAssist(set);
             set({ state: winState, isAITurn: false });
             return;
           } else if (meldAction.type === 'angang') {
@@ -546,7 +888,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const player = players[newState.currentPlayer];
 
             const tileIdsToRemove = meldAction.tiles.map(t => t.id);
-            let updatedHand = player.hand.filter(t => !tileIdsToRemove.includes(t.id));
+            const updatedHand = player.hand.filter(t => !tileIdsToRemove.includes(t.id));
 
             const updatedMelds = [...player.melds, meldAction.meld];
 
@@ -655,6 +997,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             if (newState.phase === GamePhase.PLAYING) {
               if (newState.currentPlayer === 0) {
                 set({ isAITurn: false });
+                syncHumanAssistAfterTransition(set, get, newState);
               } else {
                 setTimeout(() => get().executeAITurn(), thinkTime);
               }
@@ -702,6 +1045,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const tile = await ai.decideDiscard(aiPlayer, state);
           const newState = aiDiscardTile(state, tile);
           set({ state: newState, isAITurn: false });
+          syncHumanAssistAfterTransition(set, get, newState);
         } catch (e2) {
           fallbackAIDiscard(state, set, get);
         }
@@ -726,14 +1070,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
 
             const newState = aiDiscardTile(currentState, tileToDiscard);
-            set({ state: newState, isLLMThinking: false });
+          set({ state: newState, isLLMThinking: false });
 
-            if (newState.phase === GamePhase.PLAYING) {
-              if (newState.currentPlayer === 0) {
-                set({ isAITurn: false });
-              } else {
-                setTimeout(() => get().executeAITurn(), 500);
-              }
+          if (newState.phase === GamePhase.PLAYING) {
+            if (newState.currentPlayer === 0) {
+              set({ isAITurn: false });
+              syncHumanAssistAfterTransition(set, get, newState);
+            } else {
+              setTimeout(() => get().executeAITurn(), 500);
+            }
             } else {
               set({ isAITurn: false });
             }
@@ -745,6 +1090,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const tile = await ai.decideDiscard(aiPlayer, state);
               const newState = aiDiscardTile(state, tile);
               set({ state: newState, isAITurn: false });
+              syncHumanAssistAfterTransition(set, get, newState);
             } catch (e2) {
               fallbackAIDiscard(state, set, get);
             }
@@ -761,6 +1107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               if (newState.phase === GamePhase.PLAYING) {
                 if (newState.currentPlayer === 0) {
                   set({ isAITurn: false });
+                  syncHumanAssistAfterTransition(set, get, newState);
                 } else {
                   setTimeout(() => get().executeAITurn(), ai.getThinkTime());
                 }
@@ -780,6 +1127,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const tile = await ai.decideDiscard(aiPlayer, state);
         const newState = aiDiscardTile(state, tile);
         set({ state: newState, isAITurn: false });
+        syncHumanAssistAfterTransition(set, get, newState);
       } catch (e2) {
         fallbackAIDiscard(state, set, get);
       }
@@ -823,6 +1171,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
           if (meldAction.type === 'hu') {
             newState = setWinner(state, state.currentPlayer, 'dianpao');
+            clearPendingAssist(set);
             set({ state: newState, isAITurn: false });
             return;
           } else if (meldAction.type === 'peng') {
@@ -845,6 +1194,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const winResult = checkWin(afterMeldPlayer.hand, afterMeldPlayer.melds);
             if (winResult.isWin) {
               const winState = setWinner(newState, newState.currentPlayer, 'zimo');
+              clearPendingAssist(set);
               set({ state: winState, isAITurn: false });
               return;
             }
@@ -856,6 +1206,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             setTimeout(() => get().executeAITurn(), 500);
           } else {
             set({ isAITurn: false });
+            syncHumanAssistAfterTransition(set, get, newState);
           }
           return;
         }
@@ -868,6 +1219,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         setTimeout(() => get().executeAITurn(), 300);
       } else {
         set({ isAITurn: false });
+        syncHumanAssistAfterTransition(set, get, newState);
       }
     }
   },
@@ -884,6 +1236,7 @@ function fallbackAIDiscard(
   if (firstTile) {
     const newState = aiDiscardTile(state, firstTile);
     set({ state: newState, isAITurn: false });
+    syncHumanAssistAfterTransition(set, get, newState);
   } else {
     set({ isAITurn: false });
   }

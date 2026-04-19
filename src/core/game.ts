@@ -41,7 +41,7 @@ export interface GameState {
 
 export function compensateFlowers(state: GameState): GameState {
   console.log('Compensating flowers...');
-  let players = [...state.players];
+  const players = [...state.players];
   let wall = state.wall;
   let hasFlower = true;
 
