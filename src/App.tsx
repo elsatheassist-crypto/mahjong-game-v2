@@ -444,6 +444,24 @@ function App() {
             </div>
           </div>
 
+          {state.winner !== null && state.winScoreBreakdown && (
+            <div className="mt-6 bg-green-900 rounded-lg p-6">
+              <h3 className="text-white mb-4 text-xl">🏆 台數明細</h3>
+              <div className="flex flex-col gap-2 max-w-sm mx-auto">
+                {state.winScoreBreakdown.details.map((detail, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-lg">
+                    <span className="text-gray-300">{detail.name}</span>
+                    <span className="text-yellow-300 font-bold">{detail.tai} 台</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center text-2xl mt-4 pt-2 border-t border-green-700">
+                  <span className="text-white font-bold">總計</span>
+                  <span className="text-yellow-400 font-extrabold">{state.winScoreBreakdown.total} 台</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleStartGame}
             className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg text-xl"

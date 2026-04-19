@@ -365,11 +365,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.phase !== GamePhase.REVEAL) return;
 
     const players = [...state.players];
+    let finalBreakdown = undefined;
 
     if (state.winner !== null) {
       const winner = players[state.winner];
       const winType = state.winType === 'zimo' ? 'zimo' : undefined;
       const scoreResult = calculateScoreBreakdown(winner.hand, winner.melds, winType);
+      finalBreakdown = scoreResult;
 
       players[state.winner] = {
         ...winner,
@@ -380,6 +382,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newState: GameState = {
       ...state,
       phase: GamePhase.GAME_OVER,
+      winScoreBreakdown: finalBreakdown,
       players,
     };
 

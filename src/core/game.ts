@@ -3,6 +3,7 @@ import { Wall, createWall, drawTile, drawMultipleTiles, getRemainingCount } from
 import { Player, PlayerSeat, createPlayer, addTileToHand, discardTile, sortHand } from './player';
 import { canChi, canPeng } from './meld';
 import { canWinByClaimingDiscard } from './win';
+import { ScoreBreakdown } from './score';
 
 export enum GamePhase {
   INIT = 'init',
@@ -35,6 +36,7 @@ export interface GameState {
     tile: Tile;
     discardedTile?: Tile;
   };
+  winScoreBreakdown?: ScoreBreakdown;
 }
 
 export function compensateFlowers(state: GameState): GameState {
@@ -124,6 +126,7 @@ export function createInitialState(): GameState {
     wind: 'east',
     discardSequence: [],
     lastMeldAction: undefined,
+    winScoreBreakdown: undefined,
   };
 }
 
