@@ -5,7 +5,7 @@ import Tile, { TileSize, getResponsiveTileSize, getDiscardTileSize } from './com
 import MeldArea from './components/MeldArea';
 import DiscardPile from './components/DiscardPile';
 import FlowerArea from './components/FlowerArea';
-import GameSettings from './components/GameSettings';
+import SettingsModal from './components/SettingsModal';
 import { Tile as TileType, TILE_DISPLAY, Suit } from './core/tile';
 import { canChi, canPeng, canGang, getChiOptions, getPengOption, getGangOption } from './core/meld';
 import { canWinByClaimingDiscard, checkWin } from './core/win';
@@ -245,37 +245,18 @@ function App() {
           </button>
         </div>
 
-        {showSettings && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-96 max-w-full mx-4">
-              <h2 className="text-xl font-bold mb-4">⚙️ 遊戲設定</h2>
-              <GameSettings
-                difficulty={difficulty}
-                onDifficultyChange={setDifficulty}
-                aiMode={aiMode}
-                onAIModeChange={setAIMode}
-                llmConfig={llmConfig}
-                onLLMConfigChange={setLLMConfig}
-                hybridConfig={hybridConfig}
-                onHybridConfigChange={setHybridConfig}
-                tileSize={tileSize}
-                onTileSizeChange={setTileSize}
-                assistMode={assistMode}
-                onAssistModeChange={setAssistMode}
-                humanAiMode={humanAiMode}
-                onHumanAiModeChange={setHumanAiMode}
-                autoPlayDelay={autoPlayDelay}
-                onAutoPlayDelayChange={setAutoPlayDelay}
-              />
-              <button
-                onClick={() => setShowSettings(false)}
-                className="mt-4 w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-              >
-                關閉
-              </button>
-            </div>
-          </div>
-        )}
+        <SettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          difficulty={difficulty}
+          aiMode={aiMode}
+          llmConfig={llmConfig}
+          hybridConfig={hybridConfig}
+          tileSize={tileSize}
+          assistMode={assistMode}
+          humanAiMode={humanAiMode}
+          autoPlayDelay={autoPlayDelay}
+        />
       </div>
     );
   }
@@ -824,37 +805,18 @@ function App() {
       </div>
 
       {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-96 max-w-full mx-4">
-            <h2 className="text-xl font-bold mb-4">⚙️ 遊戲設定</h2>
-            <GameSettings
-              difficulty={difficulty}
-              onDifficultyChange={setDifficulty}
-              aiMode={aiMode}
-              onAIModeChange={setAIMode}
-              llmConfig={llmConfig}
-              onLLMConfigChange={setLLMConfig}
-              hybridConfig={hybridConfig}
-              onHybridConfigChange={setHybridConfig}
-              tileSize={tileSize}
-              onTileSizeChange={setTileSize}
-              assistMode={assistMode}
-              onAssistModeChange={setAssistMode}
-              humanAiMode={humanAiMode}
-              onHumanAiModeChange={setHumanAiMode}
-              autoPlayDelay={autoPlayDelay}
-              onAutoPlayDelayChange={setAutoPlayDelay}
-            />
-            <button
-              onClick={() => setShowSettings(false)}
-              className="mt-4 w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-            >
-              關閉
-            </button>
-          </div>
-        </div>
-      )}
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        difficulty={difficulty}
+        aiMode={aiMode}
+        llmConfig={llmConfig}
+        hybridConfig={hybridConfig}
+        tileSize={tileSize}
+        assistMode={assistMode}
+        humanAiMode={humanAiMode}
+        autoPlayDelay={autoPlayDelay}
+      />
     </div>
   );
 }

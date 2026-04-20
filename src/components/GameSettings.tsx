@@ -1,62 +1,42 @@
-import React, { useState } from 'react';
-import { callLLM } from '../ai/llm/providers';
-import { LLMConfig } from '../ai/llm/index';
-import { HybridConfig, TileSize, AssistMode, HumanAiMode } from '../stores/gameStore';
+import type React from 'react';
+import type { AIDifficulty, AIMode, AssistMode, HumanAiMode, HybridConfig, TileSize } from '../stores/gameStore';
 
-export type AIDifficulty = 'easy' | 'normal' | 'hard';
-export type AIMode = 'algorithm' | 'llm' | 'hybrid';
+export type LLMProvider = 'minimax' | 'openrouter' | 'gemini';
+export type TestStatus = 'idle' | 'testing' | 'success' | 'error';
 
-interface LLMConfigData {
-  provider: 'minimax' | 'openrouter' | 'gemini';
+export interface LLMConfigDraft {
+  provider: LLMProvider;
   apiKey: string;
   model: string;
 }
 
-interface GameSettingsProps {
+export interface SettingsDraft {
   difficulty: AIDifficulty;
-  onDifficultyChange: (d: AIDifficulty) => void;
   aiMode: AIMode;
-  onAIModeChange: (m: AIMode) => void;
-  llmConfig: LLMConfigData | null;
-  onLLMConfigChange: (c: LLMConfigData | null) => void;
   hybridConfig: HybridConfig;
-  onHybridConfigChange: (c: Partial<HybridConfig>) => void;
   tileSize: TileSize;
-  onTileSizeChange: (s: TileSize) => void;
   assistMode: AssistMode;
-  onAssistModeChange: (mode: AssistMode) => void;
   humanAiMode: HumanAiMode;
-  onHumanAiModeChange: (mode: HumanAiMode) => void;
   autoPlayDelay: number;
-  onAutoPlayDelayChange: (delay: number) => void;
+  llmConfig: LLMConfigDraft;
 }
 
-type TestStatus = 'idle' | 'testing' | 'success' | 'error';
+interface GameSettingsProps {
+  draft: SettingsDraft;
+  onDraftChange: (update: Partial<SettingsDraft>) => void;
+  onTestConnection: () => Promise<void>;
+  testStatus: TestStatus;
+  testMessage: string;
+  activeTab: 'ai' | 'display' | 'assist';
+}
 
-const GameSettings: React.FC<GameSettingsProps> = ({
-  difficulty,
-  onDifficultyChange,
-  aiMode,
-  onAIModeChange,
-  llmConfig,
-  onLLMConfigChange,
-  hybridConfig,
-  onHybridConfigChange,
-  tileSize,
-  onTileSizeChange,
-  assistMode,
-  onAssistModeChange,
-  humanAiMode,
-  onHumanAiModeChange,
-  autoPlayDelay,
-  onAutoPlayDelayChange,
-}) => {
-  const [apiKey, setApiKey] = useState(llmConfig?.apiKey || '');
-  const [model, setModel] = useState(llmConfig?.model || '');
-  const [provider, setProvider] = useState<'minimax' | 'openrouter' | 'gemini'>(llmConfig?.provider || 'openrouter');
-  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
-  const [testMessage, setTestMessage] = useState('');
+const MODELS: Record<LLMProvider, { label: string; defaultModel: string }> = {
+  minimax: { label: 'MiniMax', defaultModel: 'MiniMax-M2.7' },
+  openrouter: { label: 'OpenRouter', defaultModel: 'google/gemini-2.0-flash-exp' },
+  gemini: { label: 'Gemini', defaultModel: 'gemini-2.0-flash' },
+};
 
+const GameSettings: React.FC<GameSettingsProps> = ({ draft, onDraftChange, onTestConnection, testStatus, testMessage, activeTab }) => {
   const difficulties: { value: AIDifficulty; label: string; desc: string }[] = [
     { value: 'easy', label: '簡單', desc: '隨機出牌，新手友好' },
     { value: 'normal', label: '普通', desc: '基本策略，適合一般玩家' },
@@ -95,341 +75,156 @@ const GameSettings: React.FC<GameSettingsProps> = ({
     { value: 2000, label: '2秒', desc: '慢速' },
   ];
 
-  const models: Record<string, { label: string; defaultModel: string }> = {
-    minimax: { label: 'MiniMax', defaultModel: 'MiniMax-M2.7' },
-    openrouter: { label: 'OpenRouter', defaultModel: 'google/gemini-2.0-flash-exp' },
-    gemini: { label: 'Gemini', defaultModel: 'gemini-2.0-flash' },
-  };
-
-  const handleSave = () => {
-    const newConfig: LLMConfigData = {
-      provider,
-      apiKey: apiKey || 'YOUR_API_KEY',
-      model: model || models[provider].defaultModel,
-    };
-    onLLMConfigChange(newConfig);
-    onAIModeChange(aiMode);
-  };
-
-  const handleProviderChange = (newProvider: 'minimax' | 'openrouter' | 'gemini') => {
-    setProvider(newProvider);
-    setModel(models[newProvider].defaultModel);
-  };
-
-  const handleTestConnection = async () => {
-    setTestStatus('testing');
-    setTestMessage('');
-
-    const testConfig: LLMConfig = {
-      provider,
-      apiKey: apiKey || 'YOUR_API_KEY',
-      model: model || models[provider].defaultModel,
-    };
-
-    const testPrompt = '請回覆"連線成功"四個字。';
-
-    try {
-      const response = await callLLM(testPrompt, testConfig);
-      if (response.content && response.content.length > 0) {
-        setTestStatus('success');
-        setTestMessage(`✓ 連線成功！回應: "${response.content.slice(0, 50)}${response.content.length > 50 ? '...' : ''}"`);
-      } else {
-        setTestStatus('error');
-        setTestMessage('✗ 回應為空，請檢查模型名稱是否正確');
-      }
-    } catch (error) {
-      setTestStatus('error');
-      const errorMessage = error instanceof Error ? error.message : '未知錯誤';
-      setTestMessage(`✗ 連線失敗: ${errorMessage.slice(0, 100)}`);
-    }
+  const handleProviderChange = (provider: LLMProvider) => {
+    onDraftChange({
+      llmConfig: {
+        ...draft.llmConfig,
+        provider,
+        model: MODELS[provider].defaultModel,
+      },
+    });
   };
 
   return (
     <div className="space-y-4">
-      {/* AI Mode */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          AI 模式
-        </label>
-        <div className="flex gap-2">
-          {aiModes.map((mode) => (
-            <button
-              key={mode.value}
-              onClick={() => onAIModeChange(mode.value)}
-              className={`
-                flex-1 py-2 px-3 rounded-lg text-sm font-medium
-                transition-colors
-                ${aiMode === mode.value
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }
-              `}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-1">
-          {aiModes.find((m) => m.value === aiMode)?.desc}
-        </p>
-      </div>
+      {activeTab === 'ai' && (
+        <>
+          <div>
+            <div className="mb-2 block text-sm font-medium text-gray-700">AI 模式</div>
+            <div className="flex gap-2">
+              {aiModes.map((mode) => (
+                <button key={mode.value} type="button" onClick={() => onDraftChange({ aiMode: mode.value })} className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${draft.aiMode === mode.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">{aiModes.find((mode) => mode.value === draft.aiMode)?.desc}</p>
+          </div>
 
-      {/* Hybrid Config Toggles */}
-      {aiMode === 'hybrid' && (
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">混合模式設定</h3>
-          <div className="space-y-3">
-            {[
-              { key: 'discard' as const, label: '出牌' },
-              { key: 'meld' as const, label: '吃碰槓' },
-              { key: 'hu' as const, label: '胡牌' },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{label}</span>
-                <div className="flex gap-1">
-                  {(['algorithm', 'llm'] as const).map((value) => (
-                    <button
-                      key={value}
-                      onClick={() => onHybridConfigChange({ [key]: value })}
-                      className={`
-                        px-3 py-1 rounded text-xs font-medium
-                        transition-colors
-                        ${hybridConfig[key] === value
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }
-                      `}
-                    >
-                      {value === 'algorithm' ? '演算法' : 'LLM'}
+          {draft.aiMode === 'hybrid' && (
+            <div className="border-t pt-4">
+              <h3 className="mb-3 text-sm font-medium text-gray-700">混合模式設定</h3>
+              <div className="space-y-3">
+                {[{ key: 'discard' as const, label: '出牌' }, { key: 'meld' as const, label: '吃碰槓' }, { key: 'hu' as const, label: '胡牌' }].map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{label}</span>
+                    <div className="flex gap-1">
+                      {(['algorithm', 'llm'] as const).map((value) => (
+                        <button key={value} type="button" onClick={() => onDraftChange({ hybridConfig: { ...draft.hybridConfig, [key]: value } })} className={`rounded px-3 py-1 text-xs font-medium transition-colors ${draft.hybridConfig[key] === value ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                          {value === 'algorithm' ? '演算法' : 'LLM'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="mb-2 block text-sm font-medium text-gray-700">演算法 AI 難度</div>
+            <div className="space-y-2">
+              {difficulties.map((difficulty) => (
+                <button key={difficulty.value} type="button" onClick={() => onDraftChange({ difficulty: difficulty.value })} className={`w-full rounded-lg border-2 px-3 py-2 text-left transition-colors ${draft.difficulty === difficulty.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                  <div className="text-sm font-medium">{difficulty.label}</div>
+                  <div className="text-xs text-gray-500">{difficulty.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {(draft.aiMode === 'llm' || draft.aiMode === 'hybrid') && (
+            <div className="border-t pt-4">
+              <h3 className="mb-3 text-sm font-medium text-gray-700">LLM 設定</h3>
+              <div className="mb-3">
+                <div className="mb-1 block text-xs text-gray-600">Provider</div>
+                <div className="flex gap-2">
+                  {Object.entries(MODELS).map(([key, info]) => (
+                    <button key={key} type="button" onClick={() => handleProviderChange(key as LLMProvider)} className={`flex-1 rounded px-2 py-1.5 text-xs ${draft.llmConfig.provider === key ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      {info.label}
                     </button>
                   ))}
                 </div>
               </div>
+              <div className="mb-3">
+                <div className="mb-1 block text-xs text-gray-600">API Key</div>
+                <input type="password" value={draft.llmConfig.apiKey} onChange={(event) => onDraftChange({ llmConfig: { ...draft.llmConfig, apiKey: event.target.value } })} placeholder="輸入你的 API Key" className="w-full rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <div className="mb-3">
+                <div className="mb-1 block text-xs text-gray-600">模型</div>
+                <input type="text" value={draft.llmConfig.model} onChange={(event) => onDraftChange({ llmConfig: { ...draft.llmConfig, model: event.target.value } })} placeholder={MODELS[draft.llmConfig.provider].defaultModel} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <button type="button" onClick={() => void onTestConnection()} disabled={testStatus === 'testing' || !draft.llmConfig.apiKey} className={`w-full rounded-lg py-2 text-sm font-medium transition-colors ${testStatus === 'testing' ? 'cursor-not-allowed bg-gray-300 text-gray-500' : testStatus === 'success' ? 'bg-blue-500 text-white hover:bg-blue-600' : testStatus === 'error' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`}>
+                {testStatus === 'testing' ? '⏳ 測試中...' : '🔍 測試 API 連線'}
+              </button>
+              {testMessage && <div className={`mt-2 rounded p-2 text-xs ${testStatus === 'success' ? 'bg-green-50 text-green-700' : testStatus === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'}`}>{testMessage}</div>}
+            </div>
+          )}
+
+          {(draft.aiMode === 'llm' || draft.aiMode === 'hybrid') && (
+            <div className="rounded bg-gray-50 p-2 text-xs text-gray-500">
+              <p>• MiniMax: https://api.minimax.io</p>
+              <p>• OpenRouter: https://openrouter.ai</p>
+              <p>• Gemini: https://ai.google.dev</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'display' && (
+        <div className="border-t pt-4">
+          <div className="mb-2 block text-sm font-medium text-gray-700">麻將大小</div>
+          <div className="grid grid-cols-3 gap-2">
+            {tileSizes.map((size) => (
+              <button key={size.value} type="button" onClick={() => onDraftChange({ tileSize: size.value })} className={`rounded-lg border-2 px-2 py-2 text-center transition-colors ${draft.tileSize === size.value ? 'border-amber-500 bg-amber-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                <div className="text-sm font-medium">{size.label}</div>
+                <div className="text-xs text-gray-500">{size.desc}</div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Difficulty */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          演算法 AI 難度
-        </label>
-        <div className="space-y-2">
-          {difficulties.map((d) => (
-            <button
-              key={d.value}
-              onClick={() => onDifficultyChange(d.value)}
-              className={`
-                w-full py-2 px-3 rounded-lg text-left
-                transition-colors
-                ${difficulty === d.value
-                  ? 'bg-blue-100 border-2 border-blue-500'
-                  : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                }
-              `}
-            >
-              <div className="text-sm font-medium">{d.label}</div>
-              <div className="text-xs text-gray-500">{d.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tile Size */}
-      <div className="border-t pt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          麻將大小
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {tileSizes.map((size) => (
-            <button
-              key={size.value}
-              onClick={() => onTileSizeChange(size.value)}
-              className={`
-                py-2 px-2 rounded-lg text-center
-                transition-colors
-                ${tileSize === size.value
-                  ? 'bg-amber-100 border-2 border-amber-500'
-                  : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                }
-              `}
-            >
-              <div className="text-sm font-medium">{size.label}</div>
-              <div className="text-xs text-gray-500">{size.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Player Assist Settings */}
-      <div className="border-t pt-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">👤 玩家輔助設定</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs text-gray-600 mb-2">輔助模式</label>
-            <div className="grid grid-cols-3 gap-2">
-              {assistModes.map((mode) => (
-                <button
-                  key={mode.value}
-                  onClick={() => onAssistModeChange(mode.value)}
-                  className={`
-                    py-2 px-2 rounded-lg text-center
-                    transition-colors
-                    ${assistMode === mode.value
-                      ? 'bg-blue-100 border-2 border-blue-500'
-                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  <div className="text-sm font-medium">{mode.label}</div>
-                  <div className="text-xs text-gray-500">{mode.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-600 mb-2">輔助 AI 引擎</label>
-            <div className="grid grid-cols-2 gap-2">
-              {humanAiModes.map((mode) => (
-                <button
-                  key={mode.value}
-                  onClick={() => onHumanAiModeChange(mode.value)}
-                  className={`
-                    py-2 px-2 rounded-lg text-center
-                    transition-colors
-                    ${humanAiMode === mode.value
-                      ? 'bg-blue-100 border-2 border-blue-500'
-                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  <div className="text-sm font-medium">{mode.label}</div>
-                  <div className="text-xs text-gray-500">{mode.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-600 mb-2">託管延遲時間</label>
-            <div className="grid grid-cols-3 gap-2">
-              {autoPlayDelays.map((delay) => (
-                <button
-                  key={delay.value}
-                  onClick={() => onAutoPlayDelayChange(delay.value)}
-                  className={`
-                    py-2 px-2 rounded-lg text-center
-                    transition-colors
-                    ${autoPlayDelay === delay.value
-                      ? 'bg-blue-100 border-2 border-blue-500'
-                      : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  <div className="text-sm font-medium">{delay.label}</div>
-                  <div className="text-xs text-gray-500">{delay.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* LLM Settings (only show when LLM or Hybrid mode) */}
-      {(aiMode === 'llm' || aiMode === 'hybrid') && (
+      {activeTab === 'assist' && (
         <div className="border-t pt-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">LLM 設定</h3>
+          <h3 className="mb-3 text-sm font-medium text-gray-700">👤 玩家輔助設定</h3>
+          <div className="space-y-4">
+            <div>
+              <div className="mb-2 block text-xs text-gray-600">輔助模式</div>
+              <div className="grid grid-cols-3 gap-2">
+                {assistModes.map((mode) => (
+                  <button key={mode.value} type="button" onClick={() => onDraftChange({ assistMode: mode.value })} className={`rounded-lg border-2 px-2 py-2 text-center transition-colors ${draft.assistMode === mode.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className="text-sm font-medium">{mode.label}</div>
+                    <div className="text-xs text-gray-500">{mode.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* Provider */}
-          <div className="mb-3">
-            <label className="block text-xs text-gray-600 mb-1">Provider</label>
-            <div className="flex gap-2">
-              {Object.entries(models).map(([key, info]) => (
-                <button
-                  key={key}
-                  onClick={() => handleProviderChange(key as 'minimax' | 'openrouter' | 'gemini')}
-                  className={`
-                    flex-1 py-1.5 px-2 rounded text-xs
-                    ${provider === key
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {info.label}
-                </button>
-              ))}
+            <div>
+              <div className="mb-2 block text-xs text-gray-600">輔助 AI 引擎</div>
+              <div className="grid grid-cols-2 gap-2">
+                {humanAiModes.map((mode) => (
+                  <button key={mode.value} type="button" onClick={() => onDraftChange({ humanAiMode: mode.value })} className={`rounded-lg border-2 px-2 py-2 text-center transition-colors ${draft.humanAiMode === mode.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className="text-sm font-medium">{mode.label}</div>
+                    <div className="text-xs text-gray-500">{mode.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 block text-xs text-gray-600">託管延遲時間</div>
+              <div className="grid grid-cols-3 gap-2">
+                {autoPlayDelays.map((delay) => (
+                  <button key={delay.value} type="button" onClick={() => onDraftChange({ autoPlayDelay: delay.value })} className={`rounded-lg border-2 px-2 py-2 text-center transition-colors ${draft.autoPlayDelay === delay.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className="text-sm font-medium">{delay.label}</div>
+                    <div className="text-xs text-gray-500">{delay.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="mb-3">
-            <label className="block text-xs text-gray-600 mb-1">API Key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="輸入你的 API Key"
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="block text-xs text-gray-600 mb-1">模型</label>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={models[provider].defaultModel}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium mb-2"
-          >
-            儲存 LLM 設定
-          </button>
-
-          <button
-            onClick={handleTestConnection}
-            disabled={testStatus === 'testing' || !apiKey}
-            className={`
-              w-full py-2 rounded-lg text-sm font-medium
-              transition-colors
-              ${testStatus === 'testing'
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : testStatus === 'success'
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : testStatus === 'error'
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }
-            `}
-          >
-            {testStatus === 'testing' ? '⏳ 測試中...' : '🔍 測試 API 連線'}
-          </button>
-
-          {testMessage && (
-            <div className={`mt-2 p-2 rounded text-xs ${
-              testStatus === 'success' ? 'bg-green-50 text-green-700' :
-              testStatus === 'error' ? 'bg-red-50 text-red-700' :
-              'bg-gray-50 text-gray-700'
-            }`}>
-              {testMessage}
-            </div>
-          )}
-        </div>
-      )}
-
-      {(aiMode === 'llm' || aiMode === 'hybrid') && (
-        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-          <p>• MiniMax: https://api.minimax.io</p>
-          <p>• OpenRouter: https://openrouter.ai</p>
-          <p>• Gemini: https://ai.google.dev</p>
         </div>
       )}
     </div>
