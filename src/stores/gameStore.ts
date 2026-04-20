@@ -560,6 +560,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (assistMode === 'none') return;
     if (state.phase !== GamePhase.PLAYING) return;
     if (state.currentPlayer !== 0) return;
+
+    if (state.turnAction === 'draw') {
+      if (assistMode === 'auto') {
+        clearHumanAssistAutoPlayTimeout();
+        const turnId = `draw-${state.currentPlayer}-${Date.now()}-${Math.random()}`;
+        set({ hintTurnId: turnId });
+
+        // 摸牌動作不需要太長的延遲，固定 800ms 讓節奏順暢即可
+        const autoPlayTimeout = setTimeout(() => {
+          if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+            humanAssistAutoPlayTimeout = null;
+          }
+
+          const currentStore = get();
+          if (
+            currentStore.hintTurnId === turnId &&
+            currentStore.assistMode === 'auto' &&
+            currentStore.state.phase === GamePhase.PLAYING &&
+            currentStore.state.currentPlayer === 0 &&
+            currentStore.state.turnAction === 'draw'
+          ) {
+            currentStore.drawTile();
+          }
+        }, 800);
+        humanAssistAutoPlayTimeout = autoPlayTimeout;
+      }
+      return; // 摸牌階段不論是提示或託管，都不需要進行 AI 算牌
+    }
+
     if (state.turnAction !== 'discard' && state.turnAction !== 'waiting') return;
 
     clearHumanAssistAutoPlayTimeout();
