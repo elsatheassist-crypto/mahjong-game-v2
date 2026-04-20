@@ -212,7 +212,7 @@ function isHumanAssistableTurn(state: GameState): boolean {
   return (
     state.phase === GamePhase.PLAYING &&
     state.currentPlayer === 0 &&
-    (state.turnAction === 'discard' || state.turnAction === 'waiting')
+    (state.turnAction === 'discard' || state.turnAction === 'waiting' || state.turnAction === 'draw')
   );
 }
 
