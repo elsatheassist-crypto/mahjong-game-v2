@@ -12,7 +12,7 @@ import { callLLM } from './providers';
 
 export interface LLMAIAgent {
   config: AIConfig;
-  decide: (player: Player, gameState: GameState) => Promise<Tile>;
+  decide: (player: Player, gameState: GameState) => Promise<{ tile: Tile; reasoning: string | null }>;
   decideMeld: (player: Player, availableActions: MeldAction[], gameState: GameState) => Promise<AIDecision>;
   decideSelfDrawn: (player: Player, availableActions: MeldAction[], gameState: GameState) => Promise<AIDecision>;
 }
@@ -24,12 +24,12 @@ export function createLLMAgent(
   const config = createAIConfig(difficulty);
   const fallbackAI = createAI(difficulty);
 
-  async function decide(player: Player, gameState: GameState): Promise<Tile> {
+  async function decide(player: Player, gameState: GameState): Promise<{ tile: Tile; reasoning: string | null }> {
     const prompt = buildLLMPrompt(player, gameState);
 
     try {
       const response = await callLLM(prompt, llmConfig);
-      const tileName = parseLLMResponse(response.content);
+      const { tileName, reasoning } = parseLLMResponse(response.content);
 
       if (tileName) {
         const handDisplays = player.hand.map(t => getTileDisplay(t));
@@ -45,16 +45,18 @@ export function createLLMAgent(
         });
 
         if (tile) {
-          return tile;
+          return { tile, reasoning: reasoning ?? null };
         }
         console.warn('[LLM Agent] Tile not found in hand:', tileName);
       }
 
       console.warn('LLM failed, using fallback AI');
-      return fallbackAI.decideDiscard(player, gameState);
+      const fallbackTile = await fallbackAI.decideDiscard(player, gameState);
+      return { tile: fallbackTile, reasoning: null };
     } catch (error) {
       console.error('LLM AI error:', error);
-      return fallbackAI.decideDiscard(player, gameState);
+      const fallbackTile = await fallbackAI.decideDiscard(player, gameState);
+      return { tile: fallbackTile, reasoning: null };
     }
   }
 

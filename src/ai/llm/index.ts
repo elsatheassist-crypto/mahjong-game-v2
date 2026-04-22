@@ -103,7 +103,7 @@ function normalizeTileName(tileName: string): string {
   return tileName.split('').map(char => simplifiedToTraditional[char] || char).join('');
 }
 
-export function parseLLMResponse(response: string): string | null {
+export function parseLLMResponse(response: string): { tileName: string | null; reasoning: string | null } {
   try {
     const cleaned = response.replace(/```json\n?|```\n?/g, '').trim();
     console.log('[LLM Parse] Cleaned response:', cleaned);
@@ -112,7 +112,10 @@ export function parseLLMResponse(response: string): string | null {
     if (parsed.tile_name && typeof parsed.tile_name === 'string') {
       const normalizedTileName = normalizeTileName(parsed.tile_name);
       console.log('[LLM Parse] Found tile_name:', parsed.tile_name, '-> normalized:', normalizedTileName);
-      return normalizedTileName;
+      return {
+        tileName: normalizedTileName,
+        reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : null,
+      };
     }
     console.warn('[LLM Parse] tile_name field missing or wrong type. Parsed:', parsed);
   } catch (e) {
@@ -124,11 +127,11 @@ export function parseLLMResponse(response: string): string | null {
   if (match) {
     const normalizedTileName = normalizeTileName(match[1].trim());
     console.log('[LLM Parse] Regex fallback found:', match[1].trim(), '-> normalized:', normalizedTileName);
-    return normalizedTileName;
+    return { tileName: normalizedTileName, reasoning: null };
   }
 
   console.warn('[LLM Parse] All parsing failed. Response:', response);
-  return null;
+  return { tileName: null, reasoning: null };
 }
 
 /**

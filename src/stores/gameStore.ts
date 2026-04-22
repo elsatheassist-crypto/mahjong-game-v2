@@ -712,10 +712,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               apiKey: llmConfig.apiKey,
               model: llmConfig.model,
             }, difficulty).decide(humanPlayer, state)
-          : createAI(difficulty).decideDiscard(humanPlayer, state);
+          : createAI(difficulty).decideDiscard(humanPlayer, state).then((tile) => ({ tile, reasoning: null }));
 
         void hintPromise
-          .then((tile) => {
+          .then((result) => {
             const currentStore = get();
             const currentState = currentStore.state;
 
@@ -728,13 +728,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
               return;
             }
 
+            const { tile, reasoning } = result;
             set({
               currentHint: {
                 action: '出牌',
                 tile,
-                reason: humanAiMode === 'llm'
-                  ? 'AI 助手建議先打出這張牌。'
-                  : '演算法建議先打出這張牌。',
+                reason: reasoning ?? undefined,
               },
               isHintLoading: false,
             });
@@ -1285,14 +1284,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
           model: llmConfig.model,
         });
 
-        llmAgent.decide(aiPlayer, state).then((tileToDiscard) => {
+        llmAgent.decide(aiPlayer, state).then((result) => {
           const currentState = get().state;
           if (currentState.phase !== GamePhase.PLAYING) {
             set({ isLLMThinking: false, isAITurn: false });
             return;
           }
 
-          const newState = aiDiscardTile(currentState, tileToDiscard);
+          const newState = aiDiscardTile(currentState, result.tile);
           set({ state: newState, isLLMThinking: false });
 
           if (newState.phase === GamePhase.PLAYING) {
@@ -1329,14 +1328,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
             model: llmConfig.model,
           });
 
-          llmAgent.decide(aiPlayer, state).then((tileToDiscard) => {
+          llmAgent.decide(aiPlayer, state).then((result) => {
             const currentState = get().state;
             if (currentState.phase !== GamePhase.PLAYING) {
               set({ isLLMThinking: false, isAITurn: false });
               return;
             }
 
-            const newState = aiDiscardTile(currentState, tileToDiscard);
+            const newState = aiDiscardTile(currentState, result.tile);
           set({ state: newState, isLLMThinking: false });
 
           if (newState.phase === GamePhase.PLAYING) {

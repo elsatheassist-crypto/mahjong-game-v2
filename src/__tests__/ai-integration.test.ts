@@ -249,7 +249,7 @@ describe('AI Integration Tests', () => {
       const result = await llmAgent.decide(mockPlayer, gameState);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(mockTile.id);
+      expect(result.tile.id).toBe(mockTile.id);
     });
 
     it('should fallback to pass when LLM meld call fails', async () => {

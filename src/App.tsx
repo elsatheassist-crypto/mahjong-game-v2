@@ -625,7 +625,11 @@ function App() {
                 {isHintLoading ? (
                   '💡 AI 思考建議中...'
                 ) : currentHint ? (
-                  `💡 AI 建議：${currentHint.action}${currentHint.tile ? ` ${getTileLabel(currentHint.tile)}` : ''}${currentHint.reason ? ` (${currentHint.reason})` : ''}`
+                  <>
+                    💡 AI 建議：{currentHint.action}
+                    {currentHint.tile ? ` ${getTileLabel(currentHint.tile)}` : ''}
+                    {currentHint.reason ? ` (${currentHint.reason})` : null}
+                  </>
                 ) : null}
               </div>
             )}
