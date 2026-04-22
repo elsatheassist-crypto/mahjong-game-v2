@@ -230,6 +230,107 @@ function syncHumanAssistAfterTransition(
   setTimeout(() => get().startHumanAssistIfNeeded(), 0);
 }
 
+function getCurrentSelfDrawnTile(state: GameStore): Tile | null {
+  if (!state.lastDrawnTileId) {
+    return null;
+  }
+
+  return state.state.players[0].hand.find((tile) => tile.id === state.lastDrawnTileId) ?? null;
+}
+
+function executeHumanSelfDrawnKong(
+  set: (state: Partial<GameStore>) => void,
+  get: () => GameStore,
+  state: GameState,
+  meldAction: MeldAction
+): void {
+  const humanPlayer = state.players[0];
+
+  if (meldAction.type === 'angang') {
+    const tileIdsToRemove = new Set(meldAction.tiles.map((tile) => tile.id));
+    const updatedHand = humanPlayer.hand.filter((tile) => !tileIdsToRemove.has(tile.id));
+    const updatedMelds = [...humanPlayer.melds, meldAction.meld];
+    const drawResult = drawTile(state.wall);
+    const players = [...state.players];
+    const replacementTile = drawResult.tile;
+
+    if (replacementTile) {
+      updatedHand.push(replacementTile);
+    }
+
+    players[0] = {
+      ...humanPlayer,
+      hand: updatedHand,
+      melds: updatedMelds,
+    };
+
+    const newState: GameState = {
+      ...state,
+      wall: drawResult.wall,
+      players,
+      turnAction: 'discard',
+      lastAction: 'angang',
+      lastMeldAction: replacementTile
+        ? {
+            type: 'gang',
+            player: 0,
+            tile: replacementTile,
+          }
+        : undefined,
+    };
+
+    set({
+      state: newState,
+      selectedTileId: null,
+      lastDrawnTileId: replacementTile ? replacementTile.id : null,
+    });
+    syncHumanAssistAfterTransition(set, get, newState);
+    return;
+  }
+
+  const drawnTileId = get().lastDrawnTileId;
+  const drawnTile = humanPlayer.hand.find((tile) => tile.id === drawnTileId) ?? meldAction.tiles[0];
+  const oldPeng = humanPlayer.melds.find(
+    (meld) => meld.type === 'peng' && isSameTile(meld.tiles[0], drawnTile)
+  );
+
+  if (!oldPeng) {
+    return;
+  }
+
+  const updatedHand = humanPlayer.hand.filter((tile) => tile.id !== drawnTile.id);
+  const updatedMelds = [
+    ...humanPlayer.melds.filter((meld) => meld !== oldPeng),
+    meldAction.meld,
+  ];
+  const players = [...state.players];
+
+  players[0] = {
+    ...humanPlayer,
+    hand: updatedHand,
+    melds: updatedMelds,
+  };
+
+  const newState: GameState = {
+    ...state,
+    players,
+    turnAction: 'discard',
+    lastAction: 'gang',
+    lastMeldAction: {
+      type: 'gang',
+      player: 0,
+      tile: drawnTile,
+    },
+  };
+
+  set({
+    state: newState,
+    selectedTileId: null,
+    lastDrawnTileId: null,
+  });
+  syncHumanAssistAfterTransition(set, get, newState);
+}
+
 export const useGameStore = create<GameStore>((set, get) => ({
   state: createInitialState(),
   difficulty: 'hard',
@@ -555,7 +656,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startHumanAssistIfNeeded: () => {
-    const { state, assistMode, humanAiMode, llmConfig, difficulty } = get();
+    const { state, assistMode, humanAiMode, llmConfig, difficulty, autoPlayDelay } = get();
 
     if (assistMode === 'none') return;
     if (state.phase !== GamePhase.PLAYING) return;
@@ -594,6 +695,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     clearHumanAssistAutoPlayTimeout();
 
     const humanPlayer = state.players[0];
+    const currentSelfDrawnTile = getCurrentSelfDrawnTile(get());
     const turnId = `${state.turnAction}-${state.currentPlayer}-${Date.now()}-${Math.random()}`;
 
     set({
@@ -603,21 +705,110 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     if (state.turnAction === 'discard') {
-      const hintPromise = humanAiMode === 'llm' && llmConfig
-        ? createLLMAgent({
-            provider: llmConfig.provider,
-            apiKey: llmConfig.apiKey,
-            model: llmConfig.model,
-          }, difficulty).decide(humanPlayer, state)
-        : createAI(difficulty).decideDiscard(humanPlayer, state);
+      const startDiscardAssist = () => {
+        const hintPromise = humanAiMode === 'llm' && llmConfig
+          ? createLLMAgent({
+              provider: llmConfig.provider,
+              apiKey: llmConfig.apiKey,
+              model: llmConfig.model,
+            }, difficulty).decide(humanPlayer, state)
+          : createAI(difficulty).decideDiscard(humanPlayer, state);
 
-      void hintPromise
-        .then((tile) => {
+        void hintPromise
+          .then((tile) => {
+            const currentStore = get();
+            const currentState = currentStore.state;
+
+            if (
+              currentStore.hintTurnId !== turnId ||
+              currentState.phase !== GamePhase.PLAYING ||
+              currentState.currentPlayer !== 0 ||
+              currentState.turnAction !== 'discard'
+            ) {
+              return;
+            }
+
+            set({
+              currentHint: {
+                action: '出牌',
+                tile,
+                reason: humanAiMode === 'llm'
+                  ? 'AI 助手建議先打出這張牌。'
+                  : '演算法建議先打出這張牌。',
+              },
+              isHintLoading: false,
+            });
+
+            if (currentStore.assistMode === 'auto') {
+              clearHumanAssistAutoPlayTimeout();
+              const autoPlayTimeout = setTimeout(() => {
+                if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+                  humanAssistAutoPlayTimeout = null;
+                }
+
+                const latestStore = get();
+                const latestState = latestStore.state;
+
+                if (
+                  latestStore.assistMode !== 'auto' ||
+                  latestStore.hintTurnId !== turnId ||
+                  latestState.phase !== GamePhase.PLAYING ||
+                  latestState.currentPlayer !== 0 ||
+                  latestState.turnAction !== 'discard'
+                ) {
+                  return;
+                }
+
+                latestStore.discardTile(tile.id);
+              }, currentStore.autoPlayDelay);
+              humanAssistAutoPlayTimeout = autoPlayTimeout;
+            }
+          })
+          .catch((error) => {
+            console.error('Human assist discard error:', error);
+
+            const currentStore = get();
+            const currentState = currentStore.state;
+
+            if (
+              currentStore.hintTurnId !== turnId ||
+              currentState.phase !== GamePhase.PLAYING ||
+              currentState.currentPlayer !== 0 ||
+              currentState.turnAction !== 'discard'
+            ) {
+              return;
+            }
+
+            set({ isHintLoading: false, currentHint: null });
+          });
+      };
+
+    const winResult = checkWin(humanPlayer.hand, humanPlayer.melds);
+    if (winResult.isWin) {
+      clearHumanAssistAutoPlayTimeout();
+      const zimoTurnId = `${state.turnAction}-${state.currentPlayer}-${Date.now()}-${Math.random()}`;
+
+      set({
+        hintTurnId: zimoTurnId,
+        currentHint: {
+          action: '胡牌',
+          reason: '已達成自摸條件。',
+        },
+        isHintLoading: false,
+      });
+
+      if (assistMode === 'auto') {
+        const autoPlayTimeout = setTimeout(() => {
+          if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+            humanAssistAutoPlayTimeout = null;
+          }
+
           const currentStore = get();
           const currentState = currentStore.state;
 
           if (
-            currentStore.hintTurnId !== turnId ||
+            currentStore.hintTurnId !== zimoTurnId ||
+            currentStore.assistMode !== 'auto' ||
             currentState.phase !== GamePhase.PLAYING ||
             currentState.currentPlayer !== 0 ||
             currentState.turnAction !== 'discard'
@@ -625,59 +816,106 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return;
           }
 
-          set({
-            currentHint: {
-              action: '出牌',
-              tile,
-              reason: humanAiMode === 'llm'
-                ? 'AI 助手建議先打出這張牌。'
-                : '演算法建議先打出這張牌。',
-            },
-            isHintLoading: false,
-          });
+          currentStore.winAction();
+        }, autoPlayDelay);
+        humanAssistAutoPlayTimeout = autoPlayTimeout;
+      }
 
-          if (currentStore.assistMode === 'auto') {
-            clearHumanAssistAutoPlayTimeout();
-            const autoPlayTimeout = setTimeout(() => {
-              if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
-                humanAssistAutoPlayTimeout = null;
-              }
+      return;
+    }
 
-              const latestStore = get();
-              const latestState = latestStore.state;
+      if (currentSelfDrawnTile) {
+        const selfDrawnActions = getSelfDrawnActions(humanPlayer, currentSelfDrawnTile);
+
+        if (selfDrawnActions.length > 0) {
+          const selfDrawnDecisionPromise = humanAiMode === 'llm' && llmConfig
+            ? createLLMAgent({
+                provider: llmConfig.provider,
+                apiKey: llmConfig.apiKey,
+                model: llmConfig.model,
+              }, difficulty).decideSelfDrawn(humanPlayer, selfDrawnActions, state)
+            : createAI(difficulty).decideSelfDrawn(humanPlayer, selfDrawnActions, state);
+
+          void selfDrawnDecisionPromise
+            .then((decision) => {
+              const currentStore = get();
+              const currentState = currentStore.state;
 
               if (
-                latestStore.assistMode !== 'auto' ||
-                latestStore.hintTurnId !== turnId ||
-                latestState.phase !== GamePhase.PLAYING ||
-                latestState.currentPlayer !== 0 ||
-                latestState.turnAction !== 'discard'
+                currentStore.hintTurnId !== turnId ||
+                currentState.phase !== GamePhase.PLAYING ||
+                currentState.currentPlayer !== 0 ||
+                currentState.turnAction !== 'discard'
               ) {
                 return;
               }
 
-              latestStore.discardTile(tile.id);
-            }, currentStore.autoPlayDelay);
-            humanAssistAutoPlayTimeout = autoPlayTimeout;
-          }
-        })
-        .catch((error) => {
-          console.error('Human assist discard error:', error);
+              if (decision.action === 'meld' && decision.meldAction) {
+                const meldAction = decision.meldAction;
+                let hint: HumanAssistHint;
 
-          const currentStore = get();
-          const currentState = currentStore.state;
+                if (meldAction.type === 'angang') {
+                  hint = {
+                    action: '槓',
+                    meldAction,
+                    reason: humanAiMode === 'llm'
+                      ? 'AI 助手建議先進行暗槓。'
+                      : '演算法建議先進行暗槓。',
+                  };
+                } else if (meldAction.type === 'gang') {
+                  hint = {
+                    action: '槓',
+                    meldAction,
+                    reason: humanAiMode === 'llm'
+                      ? 'AI 助手建議先進行補槓。'
+                      : '演算法建議先進行補槓。',
+                  };
+                } else {
+                  startDiscardAssist();
+                  return;
+                }
 
-          if (
-            currentStore.hintTurnId !== turnId ||
-            currentState.phase !== GamePhase.PLAYING ||
-            currentState.currentPlayer !== 0 ||
-            currentState.turnAction !== 'discard'
-          ) {
-            return;
-          }
+                set({ currentHint: hint, isHintLoading: false });
 
-          set({ isHintLoading: false, currentHint: null });
-        });
+                if (assistMode === 'auto') {
+                  clearHumanAssistAutoPlayTimeout();
+                  const autoPlayTimeout = setTimeout(() => {
+                    if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+                      humanAssistAutoPlayTimeout = null;
+                    }
+
+                    const currentStore = get();
+                    const currentState = currentStore.state;
+
+                    if (
+                      currentStore.hintTurnId !== turnId ||
+                      currentStore.assistMode !== 'auto' ||
+                      currentState.phase !== GamePhase.PLAYING ||
+                      currentState.currentPlayer !== 0 ||
+                      currentState.turnAction !== 'discard'
+                    ) {
+                      return;
+                    }
+
+                    executeHumanSelfDrawnKong(set, get, currentState, meldAction);
+                  }, currentStore.autoPlayDelay);
+                  humanAssistAutoPlayTimeout = autoPlayTimeout;
+                }
+
+                return;
+              }
+
+              startDiscardAssist();
+            })
+            .catch((error) => {
+              console.error('Human assist self-drawn error:', error);
+              startDiscardAssist();
+            });
+          return;
+        }
+      }
+
+      startDiscardAssist();
       return;
     }
 
