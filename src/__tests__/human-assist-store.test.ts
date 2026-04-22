@@ -746,7 +746,7 @@ describe('human assist store', () => {
     expect(assistSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('should not schedule assist when an ai waiting pass returns the human to draw', async () => {
+  it('should schedule assist when an ai waiting pass returns the human to draw', async () => {
     vi.useFakeTimers();
 
     const assistSpy = installAssistSpy();
@@ -762,7 +762,7 @@ describe('human assist store', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     const state = useGameStore.getState();
-    expect(assistSpy).not.toHaveBeenCalled();
+    expect(assistSpy).toHaveBeenCalledTimes(1);
     expect(state.state.currentPlayer).toBe(0);
     expect(state.state.turnAction).toBe('draw');
     expect(state.currentHint).toBeNull();
