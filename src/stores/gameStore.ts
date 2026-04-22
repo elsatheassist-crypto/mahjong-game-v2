@@ -764,6 +764,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
           })
           .catch((error) => {
+            console.warn('[Fallback] 提示助手 LLM 錯誤，切換至演算法建議');
             console.error('Human assist discard error:', error);
 
             const currentStore = get();
@@ -778,7 +779,58 @@ export const useGameStore = create<GameStore>((set, get) => ({
               return;
             }
 
-            set({ isHintLoading: false, currentHint: null });
+            const ai = createAI(difficulty);
+            ai.decideDiscard(humanPlayer, currentState)
+              .then((tile) => {
+                const store = get();
+                const s = store.state;
+
+                if (
+                  store.hintTurnId !== turnId ||
+                  s.phase !== GamePhase.PLAYING ||
+                  s.currentPlayer !== 0 ||
+                  s.turnAction !== 'discard'
+                ) {
+                  return;
+                }
+
+                set({
+                  currentHint: {
+                    action: '出牌',
+                    tile,
+                    reason: undefined,
+                  },
+                  isHintLoading: false,
+                });
+
+                if (store.assistMode === 'auto') {
+                  clearHumanAssistAutoPlayTimeout();
+                  const autoPlayTimeout = setTimeout(() => {
+                    if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+                      humanAssistAutoPlayTimeout = null;
+                    }
+
+                    const latestStore = get();
+                    const latestState = latestStore.state;
+
+                    if (
+                      latestStore.assistMode !== 'auto' ||
+                      latestStore.hintTurnId !== turnId ||
+                      latestState.phase !== GamePhase.PLAYING ||
+                      latestState.currentPlayer !== 0 ||
+                      latestState.turnAction !== 'discard'
+                    ) {
+                      return;
+                    }
+
+                    latestStore.discardTile(tile.id);
+                  }, currentStore.autoPlayDelay);
+                  humanAssistAutoPlayTimeout = autoPlayTimeout;
+                }
+              })
+              .catch(() => {
+                set({ isHintLoading: false, currentHint: null });
+              });
           });
       };
 
@@ -907,6 +959,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               startDiscardAssist();
             })
             .catch((error) => {
+              console.warn('[Fallback] 提示助手 LLM 錯誤，切換至演算法建議');
               console.error('Human assist self-drawn error:', error);
               startDiscardAssist();
             });
@@ -1019,6 +1072,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       })
       .catch((error) => {
+        console.warn('[Fallback] 提示助手 LLM 錯誤，切換至演算法建議');
         console.error('Human assist waiting error:', error);
 
         const currentStore = get();
@@ -1035,7 +1089,86 @@ export const useGameStore = create<GameStore>((set, get) => ({
           return;
         }
 
-        set({ isHintLoading: false, currentHint: null });
+        const ai = createAI(difficulty);
+        ai.decideMeld(humanPlayer, availableActions, currentState)
+          .then((decision) => {
+            const store = get();
+            const s = store.state;
+
+            if (
+              store.hintTurnId !== turnId ||
+              s.phase !== GamePhase.PLAYING ||
+              s.currentPlayer !== 0 ||
+              s.turnAction !== 'waiting' ||
+              !s.lastDiscard ||
+              s.lastDiscardPlayer === null
+            ) {
+              return;
+            }
+
+            let hint: HumanAssistHint;
+            if (decision.action === 'meld' && decision.meldAction) {
+              if (decision.meldAction.type === 'hu') {
+                hint = { action: '胡牌' };
+              } else if (decision.meldAction.type === 'peng') {
+                hint = { action: '碰', meldAction: decision.meldAction };
+              } else if (decision.meldAction.type === 'gang') {
+                hint = { action: '槓', meldAction: decision.meldAction };
+              } else if (decision.meldAction.type === 'chi') {
+                hint = { action: '吃', meldAction: decision.meldAction };
+              } else {
+                hint = { action: '過' };
+              }
+            } else {
+              hint = { action: '過' };
+            }
+
+            if (get().hintTurnId !== turnId) {
+              return;
+            }
+
+            set({ currentHint: hint, isHintLoading: false });
+
+            if (store.assistMode === 'auto') {
+              clearHumanAssistAutoPlayTimeout();
+              const autoPlayTimeout = setTimeout(() => {
+                if (humanAssistAutoPlayTimeout === autoPlayTimeout) {
+                  humanAssistAutoPlayTimeout = null;
+                }
+
+                const latestStore = get();
+                const latestState = latestStore.state;
+
+                if (
+                  latestStore.assistMode !== 'auto' ||
+                  latestStore.hintTurnId !== turnId ||
+                  latestState.phase !== GamePhase.PLAYING ||
+                  latestState.currentPlayer !== 0 ||
+                  latestState.turnAction !== 'waiting' ||
+                  !latestState.lastDiscard ||
+                  latestState.lastDiscardPlayer === null
+                ) {
+                  return;
+                }
+
+                if (hint.action === '胡牌') {
+                  latestStore.winAction();
+                } else if (hint.action === '碰') {
+                  latestStore.pengAction();
+                } else if (hint.action === '槓') {
+                  latestStore.gangAction();
+                } else if (hint.action === '吃' && hint.meldAction) {
+                  latestStore.chiActionWithOption(hint.meldAction);
+                } else {
+                  latestStore.passAction();
+                }
+              }, currentStore.autoPlayDelay);
+              humanAssistAutoPlayTimeout = autoPlayTimeout;
+            }
+          })
+          .catch(() => {
+            set({ isHintLoading: false, currentHint: null });
+          });
       });
   },
 
@@ -1127,6 +1260,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             decision = await llmAgent.decideSelfDrawn(aiPlayer, selfDrawnActions, newState);
             set({ isLLMThinking: false });
           } catch (e) {
+            console.warn('[Fallback] LLM 發生錯誤，自動切換至演算法 AI 代打');
             console.error('LLM self-drawn decision error:', e);
             set({ isLLMThinking: false });
             const ai = createAI(difficulty);
@@ -1304,6 +1438,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             set({ isAITurn: false });
           }
         }).catch(async (e) => {
+          console.warn('[Fallback] LLM 發生錯誤，自動切換至演算法 AI 代打');
           console.error('LLM AI error:', e);
           set({ isLLMThinking: false });
           const ai = createAI(difficulty);
@@ -1349,6 +1484,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               set({ isAITurn: false });
             }
           }).catch(async (e) => {
+            console.warn('[Fallback] LLM 發生錯誤，自動切換至演算法 AI 代打');
             console.error('Hybrid LLM discard error:', e);
             set({ isLLMThinking: false });
             const ai = createAI(difficulty);
@@ -1421,6 +1557,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             decision = await llmAgent.decideMeld(aiPlayer, availableActions, state);
             set({ isLLMThinking: false });
           } catch (e) {
+            console.warn('[Fallback] LLM 發生錯誤，自動切換至演算法 AI 代打');
             console.error('LLM meld decision error:', e);
             set({ isLLMThinking: false });
             const ai = createAI(difficulty);
