@@ -118,22 +118,25 @@ const GameSettings: React.FC<GameSettingsProps> = ({ draft, onDraftChange, onTes
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-3">💡 提示：如需修改 API Key 或演算法難度，請先點選上方按鈕切換至對應模式進行設定，混合模式將自動套用其參數。</p>
             </div>
           )}
 
-          <div>
-            <div className="mb-2 block text-sm font-medium text-gray-700">演算法 AI 難度</div>
-            <div className="space-y-2">
-              {difficulties.map((difficulty) => (
-                <button key={difficulty.value} type="button" onClick={() => onDraftChange({ difficulty: difficulty.value })} className={`w-full rounded-lg border-2 px-3 py-2 text-left transition-colors ${draft.difficulty === difficulty.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
-                  <div className="text-sm font-medium">{difficulty.label}</div>
-                  <div className="text-xs text-gray-500">{difficulty.desc}</div>
-                </button>
-              ))}
+          {draft.aiMode === 'algorithm' && (
+            <div>
+              <div className="mb-2 block text-sm font-medium text-gray-700">演算法 AI 難度</div>
+              <div className="space-y-2">
+                {difficulties.map((difficulty) => (
+                  <button key={difficulty.value} type="button" onClick={() => onDraftChange({ difficulty: difficulty.value })} className={`w-full rounded-lg border-2 px-3 py-2 text-left transition-colors ${draft.difficulty === difficulty.value ? 'border-blue-500 bg-blue-100' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className="text-sm font-medium">{difficulty.label}</div>
+                    <div className="text-xs text-gray-500">{difficulty.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {(draft.aiMode === 'llm' || draft.aiMode === 'hybrid') && (
+          {draft.aiMode === 'llm' && (
             <div className="border-t pt-4">
               <h3 className="mb-3 text-sm font-medium text-gray-700">LLM 設定</h3>
               <div className="mb-3">
@@ -161,7 +164,7 @@ const GameSettings: React.FC<GameSettingsProps> = ({ draft, onDraftChange, onTes
             </div>
           )}
 
-          {(draft.aiMode === 'llm' || draft.aiMode === 'hybrid') && (
+          {draft.aiMode === 'llm' && (
             <div className="rounded bg-gray-50 p-2 text-xs text-gray-500">
               <p>• MiniMax: https://api.minimax.io</p>
               <p>• OpenRouter: https://openrouter.ai</p>
