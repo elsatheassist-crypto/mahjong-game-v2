@@ -279,11 +279,11 @@ function App() {
 
         {/* Game Area */}
         <div className="flex-1 flex flex-col">
-          {/* Top player (North) */}
+          {/* Top player (West) */}
           <div className="flex justify-center p-2 bg-green-800/50">
             <div className="text-center">
               <div className="text-white text-xs mb-1">
-                北 {state.players[2].hand.length}張
+                西 {state.players[2].hand.length}張
               </div>
               <div className="flex gap-0.5 justify-center flex-wrap">
                 {state.players[2].hand.map((tile) => (
@@ -303,10 +303,10 @@ function App() {
 
           {/* Middle row */}
           <div className="flex-1 flex">
-            {/* Left player (West) */}
+            {/* Left player (North) */}
             <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
               <div className="text-white text-xs mb-1">
-                西 {state.players[3].hand.length}張
+                北 {state.players[3].hand.length}張
               </div>
               <div className="flex flex-col gap-0.5">
                 {state.players[3].hand.map((tile) => (
@@ -353,10 +353,10 @@ function App() {
               </button>
             </div>
 
-            {/* Right player (East) */}
+            {/* Right player (South) */}
             <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
               <div className="text-white text-xs mb-1">
-                東 {state.players[1].hand.length}張
+                南 {state.players[1].hand.length}張
               </div>
               <div className="flex flex-col gap-0.5">
                 {state.players[1].hand.map((tile) => (
@@ -386,7 +386,7 @@ function App() {
             />
             <div className="text-center mb-4">
               <div className="text-white text-sm mb-2">
-                👤 你的手牌（南）— {humanPlayer.hand.length} 張
+                👤 你的手牌（東）— {humanPlayer.hand.length} 張
               </div>
 
               <div className="flex flex-wrap gap-1 justify-center">
@@ -564,12 +564,12 @@ function App() {
 
       {/* Game Area */}
       <div className="flex-1 flex flex-col">
-        {/* Top player (North) */}
+        {/* Top player (West) */}
         <div className="flex justify-center p-2 bg-green-800/50">
           <div className="text-center">
             <div className="text-white text-xs mb-1">
               {getCurrentPlayerIndicator(2) && <span className="mr-1">{getCurrentPlayerIndicator(2)}</span>}
-              北 {state.players[2].hand.length}張
+              西 {state.players[2].hand.length}張
             </div>
             <div className="flex gap-0.5 justify-center">
               {state.players[2].hand.slice(0, 9).map((_, i) => (
@@ -591,11 +591,11 @@ function App() {
 
         {/* Middle row */}
         <div className="flex-1 flex">
-          {/* Left player (West) */}
+          {/* Left player (North) */}
           <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
             <div className="text-white text-xs mb-1">
               {getCurrentPlayerIndicator(3) && <span className="mr-1">{getCurrentPlayerIndicator(3)}</span>}
-              西 {state.players[3].hand.length}張
+              北 {state.players[3].hand.length}張
             </div>
             <div className="flex flex-col gap-0.5">
               {state.players[3].hand.slice(0, 6).map((_, i) => (
@@ -646,11 +646,11 @@ function App() {
             </div>
           </div>
 
-          {/* Right player (East) */}
+          {/* Right player (South) */}
           <div className="w-32 p-2 bg-green-800/50 flex flex-col items-center">
             <div className="text-white text-xs mb-1">
               {getCurrentPlayerIndicator(1) && <span className="mr-1">{getCurrentPlayerIndicator(1)}</span>}
-              東 {state.players[1].hand.length}張
+              南 {state.players[1].hand.length}張
             </div>
             <div className="flex flex-col gap-0.5">
               {state.players[1].hand.slice(0, 6).map((_, i) => (
@@ -679,7 +679,7 @@ function App() {
           <div className="text-center mb-4">
             <div className="text-white text-sm mb-2">
               {getCurrentPlayerIndicator(0) && <span className="mr-1">{getCurrentPlayerIndicator(0)}</span>}
-              👤 你的手牌（南）— {humanPlayer.hand.length} 張
+              👤 你的手牌（東）— {humanPlayer.hand.length} 張
             </div>
 
             <div className="flex flex-wrap gap-1 justify-center">
