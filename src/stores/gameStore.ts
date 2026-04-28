@@ -733,9 +733,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               currentHint: {
                 action: '出牌',
                 tile,
-                reason: reasoning ?? (currentStore.humanAiMode === 'llm'
-                      ? 'AI 助手建議先打出這張牌。'
-                      : '演算法建議先打出這張牌。'),
+                reason: reasoning ?? undefined,
               },
               isHintLoading: false,
             });
@@ -800,9 +798,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                   currentHint: {
                     action: '出牌',
                     tile,
-                    reason: store.humanAiMode === 'llm'
-                      ? 'AI 助手建議先打出這張牌。'
-                      : '演算法建議先打出這張牌。',
+                    reason: undefined,
                   },
                   isHintLoading: false,
                 });

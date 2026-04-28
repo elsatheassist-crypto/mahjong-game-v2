@@ -396,7 +396,6 @@ describe("human assist store", () => {
 		expect(state.currentHint).toEqual({
 			action: "出牌",
 			tile: TEST_TILE,
-			reason: "演算法建議先打出這張牌。",
 		});
 		expect(state.isHintLoading).toBe(false);
 		expect(state.state.lastDiscard).toBeNull();
@@ -436,7 +435,6 @@ describe("human assist store", () => {
 		expect(useGameStore.getState().currentHint).toEqual({
 			action: "出牌",
 			tile: TEST_TILE,
-			reason: "演算法建議先打出這張牌。",
 		});
 
 		await vi.advanceTimersByTimeAsync(25);
@@ -473,7 +471,6 @@ describe("human assist store", () => {
 		expect(state.currentHint).toEqual({
 			action: "出牌",
 			tile: TEST_TILE,
-			reason: "AI 助手建議先打出這張牌。",
 		});
 		expect(state.isHintLoading).toBe(false);
 	});
@@ -499,7 +496,6 @@ describe("human assist store", () => {
 		expect(state.currentHint).toEqual({
 			action: "出牌",
 			tile: TEST_TILE,
-			reason: "演算法建議先打出這張牌。",
 		});
 		expect(state.isHintLoading).toBe(false);
 	});
